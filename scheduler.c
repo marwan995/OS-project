@@ -1,7 +1,5 @@
 #include "headers.h"
 int msgq_id;
-// seif atef samy emad 
-//marwan samy
 int Recived_Config(int *quantum,int*numOfProcess)
 {
     key_t key_id;
