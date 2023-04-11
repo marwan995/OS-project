@@ -23,6 +23,7 @@ int Recived_Config(int *quantum,int*numOfProcess)
     *numOfProcess=c.Schedule[2];
     return c.Schedule[0];
 }
+//test
 Process Recived_Process(int *priority)
 {
   //  printf("\nreciving\n");
