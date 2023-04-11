@@ -1,6 +1,7 @@
 #include "headers.h"
 int msgq_id;
-// seif atef samy emad
+// seif atef samy emad 
+//marwan
 int Recived_Config(int *quantum,int*numOfProcess)
 {
     key_t key_id;
@@ -23,7 +24,6 @@ int Recived_Config(int *quantum,int*numOfProcess)
     *numOfProcess=c.Schedule[2];
     return c.Schedule[0];
 }
-//test
 Process Recived_Process(int *priority)
 {
   //  printf("\nreciving\n");
