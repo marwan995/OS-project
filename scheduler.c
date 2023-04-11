@@ -1,6 +1,6 @@
 #include "headers.h"
 int msgq_id;
-
+// seif atef samy emad
 int Recived_Config(int *quantum,int*numOfProcess)
 {
     key_t key_id;
@@ -11,7 +11,7 @@ int Recived_Config(int *quantum,int*numOfProcess)
         perror("Error in create");
         exit(-1);
     }
-
+    
     Config c;
     int rec_val = msgrcv(msgq_id, &c, sizeof(c.Schedule),0, !IPC_NOWAIT); // 0
 
