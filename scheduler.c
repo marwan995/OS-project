@@ -5,9 +5,11 @@ key_t key_id;
 int Recv_Signal()
 {
     key_id = ftok("pidfile", 75);               // create unique key
-    msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
+    msgq_id = msgget(key_id, 0644 | IPC_CREAT); // create message queue and return id
     Config to_recv;
-    int rec_val = msgrcv(msgq_id, &to_recv, sizeof(to_recv.Schedule), 10, !IPC_NOWAIT); // 0
+    //sleep(1);
+    int rec_val = msgrcv(msgq_id, &to_recv, sizeof(to_recv.Schedule), 65, !IPC_NOWAIT); // 0
+    
     if (rec_val == -1)
         perror("reciving");
     return to_recv.Schedule[0];
@@ -54,13 +56,17 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
     {
         Process running = dequeue(&(*Process_queue));
         char argString1[10];
-        sprintf(argString1, " %d", running.Run_Time);
+        sprintf(argString1, " %d", running.Remaining_Time);
         char argString2[10];
         sprintf(argString2, " %d", running.Id);
+        char argString3[10];
+        sprintf(argString3, " %d", chosen);    
+        char argString4[10]; 
+        sprintf(argString4, " %d", 10000000);
         pid = fork();
         if (pid == 0)
         {
-            execl("./process.out", "process.out", argString1, argString2, NULL);
+            execl("./process.out", "process.out", argString1, argString2, argString3, argString4, NULL);
             perror("erorr");
             return;
         }
@@ -82,56 +88,56 @@ void Round_Robin(Node **Process_queue, int quantum)
         Process running = dequeue(&(*Process_queue));
         char argString1[10];
         sprintf(argString1, " %d", running.Remaining_Time);
-
         char argString2[10];
         sprintf(argString2, " %d", running.Id);
         char argString3[10];
-        sprintf(argString3, " %d", quantum);    
+        sprintf(argString3, " %d", chosen);    
         char argString4[10]; 
-        sprintf(argString4, " %d", chosen);
-        printf("before send RT: %d id: %d quantum:%d  chosen:%d\n", running.Remaining_Time, running.Id, quantum, chosen);
+        sprintf(argString4, " %d", quantum);
+       // printf("before send RT: %d id: %d chosen:%d  quantum:%d\n", running.Remaining_Time, running.Id, chosen, quantum);
 
         int remaining = running.Remaining_Time;
         pid = fork();
         if (pid == 0)
         {
             execl("./process.out", "process.out", argString1, argString2, argString3, argString4, NULL);
-            perror("erorr");
+            perror("Erorr");
             return;
         }
 
-        printf("Hello in RR  : %d with queue size :%d with pid=%d \n", running.Id, size, pid);
 
         running.Remaining_Time = Recv_Signal();
-        printf("  running.Remaining_Time : %d \n", running.Remaining_Time);
-        if (running.Remaining_Time >= 0)
+      
+        if (running.Remaining_Time > 0)
             enqueue(Process_queue, running, 0);
         printQueue(&(*Process_queue));
+        
         if(getClk()>=30)
-        kill(getpgrp(),SIGINT);
+            kill(getpgrp(),SIGINT);
         // printf("Hello in RR (if) : %d with queue size :%d\n", running.Id, size);
     }
 }
 int main(int argc, char *argv[])
 {
     initClk();
-    int quantum, numOfProcess, chosen;
+    int quantum, numOfProcess;
     chosen = Recived_Config(&quantum, &numOfProcess);
     Node *Process_queue = NULL;
     int priority;
     //  TODO implement the scheduler :)
     // upon termination release the clock resources.
-    printf("\n\n\n%d\n\n\n", chosen);
+    printf("\n%d\n", chosen);
     Process Currunt_process;
+    
 
-    while (numOfProcess > 0 || !isEmpty(&Process_queue))
+
+    while ((numOfProcess > 0 || !isEmpty(&Process_queue)))
     { // handle when multi process came in the same time
-
         Currunt_process = Recived_Process(&priority);
         while (Currunt_process.Arrive_Time != -1)
         {
+            printf("Id = %d\n", Currunt_process.Id);
             enqueue(&Process_queue, Currunt_process, priority);
-            printf("Hello in while num process : %d with queue size :%d\n", numOfProcess, size);
             numOfProcess--;
             Currunt_process = Recived_Process(&priority);
         }
@@ -142,8 +148,7 @@ int main(int argc, char *argv[])
         else if (chosen == 3)
             Round_Robin(&Process_queue, quantum);
     }
-    while (wait(&quantum) > 0)
-        ;
+    while (wait(&quantum) > 0);        ;
 
     destroyClk(true);
     return 0;
