@@ -50,6 +50,14 @@ Process dequeue(Node** head) {
     size--;
     return data;
 }
+void printQueue(Node** head) {
+    Node* temp = *head;
+    while (temp != NULL) {
+        printf("Process Id: %d, Priority: %d Remaining time:%d\n", temp->data.Id, temp->priority,temp->data.Remaining_Time);
+        temp = temp->next;
+    }
+    printf("\n");
+}
 int isEmpty(Node** head) {
    return (*head) == NULL;
 }

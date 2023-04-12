@@ -1,23 +1,16 @@
 #include "headers.h"
-int msgq_id, chosen, shmid;
-int Send_Signal_Stop()
+int msgq_id, chosen;
+key_t key_id;
+
+int Recv_Signal()
 {
-   
-     Config pid_to_Send;
-  key_t key_id;
-  key_id = ftok("pidfile", 75);               // create unique key
-  int msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
-  if (msgq_id == -1)
-  {
-    perror("Error in create");
-    exit(-1);
-  }
-  pid_to_Send.mtype = 10;
-  pid_to_Send.Schedule[0] =5;
-  pid_to_Send.Schedule[1] =5;
-  pid_to_Send.Schedule[2] =5;
-  printf("\nSending\n");
-  int send_val = msgsnd(msgq_id, &pid_to_Send, sizeof(pid_to_Send.Schedule), !IPC_NOWAIT);
+    key_id = ftok("pidfile", 75);               // create unique key
+    msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
+    Config to_recv;
+    int rec_val = msgrcv(msgq_id, &to_recv, sizeof(to_recv.Schedule), 10, !IPC_NOWAIT); // 0
+    if (rec_val == -1)
+        perror("reciving");
+    return to_recv.Schedule[0];
 }
 int Recived_Config(int *quantum, int *numOfProcess)
 {
@@ -89,35 +82,34 @@ void Round_Robin(Node **Process_queue, int quantum)
         Process running = dequeue(&(*Process_queue));
         char argString1[10];
         sprintf(argString1, " %d", running.Remaining_Time);
+
         char argString2[10];
         sprintf(argString2, " %d", running.Id);
+        char argString3[10];
+        sprintf(argString3, " %d", quantum);    
+        char argString4[10]; 
+        sprintf(argString4, " %d", chosen);
+        printf("before send RT: %d id: %d quantum:%d  chosen:%d\n", running.Remaining_Time, running.Id, quantum, chosen);
+
         int remaining = running.Remaining_Time;
         pid = fork();
         if (pid == 0)
         {
-            execl("./process.out", "process.out", argString1, argString2, NULL);
+            execl("./process.out", "process.out", argString1, argString2, argString3, argString4, NULL);
             perror("erorr");
             return;
         }
 
         printf("Hello in RR  : %d with queue size :%d with pid=%d \n", running.Id, size, pid);
 
-        if (remaining > quantum)
-        {
-            while (quantum <= getClk() - remaining)
-                ;
-            Send_Signal_Stop();
-            remaining -= quantum;
-            running.Remaining_Time = remaining;
+        running.Remaining_Time = Recv_Signal();
+        printf("  running.Remaining_Time : %d \n", running.Remaining_Time);
+        if (running.Remaining_Time >= 0)
             enqueue(Process_queue, running, 0);
-            printf("Hello in RR (if) : %d with queue size :%d\n", running.Id, size);
-        }
-        else
-        {
-            wait(&status);
-            remaining = 0;
-            running.Remaining_Time = remaining;
-        }
+        printQueue(&(*Process_queue));
+        if(getClk()>=30)
+        kill(getpgrp(),SIGINT);
+        // printf("Hello in RR (if) : %d with queue size :%d\n", running.Id, size);
     }
 }
 int main(int argc, char *argv[])
@@ -129,7 +121,7 @@ int main(int argc, char *argv[])
     int priority;
     //  TODO implement the scheduler :)
     // upon termination release the clock resources.
-
+    printf("\n\n\n%d\n\n\n", chosen);
     Process Currunt_process;
 
     while (numOfProcess > 0 || !isEmpty(&Process_queue))
