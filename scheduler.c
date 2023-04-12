@@ -1,6 +1,24 @@
 #include "headers.h"
-int msgq_id, chosen;
-
+int msgq_id, chosen, shmid;
+int Send_Signal_Stop()
+{
+   
+     Config pid_to_Send;
+  key_t key_id;
+  key_id = ftok("pidfile", 75);               // create unique key
+  int msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
+  if (msgq_id == -1)
+  {
+    perror("Error in create");
+    exit(-1);
+  }
+  pid_to_Send.mtype = 10;
+  pid_to_Send.Schedule[0] =5;
+  pid_to_Send.Schedule[1] =5;
+  pid_to_Send.Schedule[2] =5;
+  printf("\nSending\n");
+  int send_val = msgsnd(msgq_id, &pid_to_Send, sizeof(pid_to_Send.Schedule), !IPC_NOWAIT);
+}
 int Recived_Config(int *quantum, int *numOfProcess)
 {
     key_t key_id;
@@ -81,16 +99,18 @@ void Round_Robin(Node **Process_queue, int quantum)
             perror("erorr");
             return;
         }
-        printf("Hello in RR  : %d with queue size :%d\n",running.Id,size);
+
+        printf("Hello in RR  : %d with queue size :%d with pid=%d \n", running.Id, size, pid);
+
         if (remaining > quantum)
         {
             while (quantum <= getClk() - remaining)
                 ;
-                kill(pid,SIGUSR1);
+            Send_Signal_Stop();
             remaining -= quantum;
             running.Remaining_Time = remaining;
             enqueue(Process_queue, running, 0);
-            printf("Hello in RR (if) : %d with queue size :%d\n",running.Id,size);
+            printf("Hello in RR (if) : %d with queue size :%d\n", running.Id, size);
         }
         else
         {
@@ -112,14 +132,14 @@ int main(int argc, char *argv[])
 
     Process Currunt_process;
 
-    while (numOfProcess>0 || !isEmpty(&Process_queue))
+    while (numOfProcess > 0 || !isEmpty(&Process_queue))
     { // handle when multi process came in the same time
-        
+
         Currunt_process = Recived_Process(&priority);
         while (Currunt_process.Arrive_Time != -1)
         {
             enqueue(&Process_queue, Currunt_process, priority);
-            printf("Hello in while num process : %d with queue size :%d\n",numOfProcess,size);
+            printf("Hello in while num process : %d with queue size :%d\n", numOfProcess, size);
             numOfProcess--;
             Currunt_process = Recived_Process(&priority);
         }
