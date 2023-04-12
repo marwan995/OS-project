@@ -4,11 +4,11 @@ key_t key_id;
 
 int Recv_Signal()
 {
-    key_id = ftok("pidfile", 75);               // create unique key
-    msgq_id = msgget(key_id, 0644 | IPC_CREAT); // create message queue and return id
+    key_t process_key = ftok("pidfile", 75);               // create unique key
+    int process_msgq_id = msgget(process_key, 0644 | IPC_CREAT); // create message queue and return id
     Config to_recv;
     //sleep(1);
-    int rec_val = msgrcv(msgq_id, &to_recv, sizeof(to_recv.Schedule), 65, !IPC_NOWAIT); // 0
+    int rec_val = msgrcv(process_msgq_id, &to_recv, sizeof(to_recv.Schedule), 65, !IPC_NOWAIT); // 0
     
     if (rec_val == -1)
         perror("reciving");
@@ -16,7 +16,6 @@ int Recv_Signal()
 }
 int Recived_Config(int *quantum, int *numOfProcess)
 {
-    key_t key_id;
     key_id = ftok("keyfile", 65);               // create unique key
     msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
     if (msgq_id == -1)
@@ -25,7 +24,7 @@ int Recived_Config(int *quantum, int *numOfProcess)
         exit(-1);
     }
     Config c;
-    int rec_val = msgrcv(msgq_id, &c, sizeof(c.Schedule), 0, !IPC_NOWAIT); // 0
+    int rec_val = msgrcv(msgq_id, &c, sizeof(c.Schedule), 1, !IPC_NOWAIT); // 0
     if (rec_val == -1)
         perror("Error in receive");
     // else
@@ -34,12 +33,15 @@ int Recived_Config(int *quantum, int *numOfProcess)
     *numOfProcess = c.Schedule[2];
     return c.Schedule[0];
 }
+int dbg_cnt = 0;
 Process Recived_Process(int *priority)
 {
     //  printf("\nreciving\n");
     msgbuff m;
     int recv_val = msgrcv(msgq_id, &m, sizeof(m.p), 4, IPC_NOWAIT);
-    if (chosen == 1)
+    //printf("Recived_Process number : %d\n", dbg_cnt);
+    // dbgcnt++;
+    if (chosen != 3)
         *priority = m.p.Priority;
     else
         *priority = 0;
@@ -79,7 +81,7 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
 void Shortest_Remaining_time_Next(Node **Process_queue)
 {
 }
-void Round_Robin(Node **Process_queue, int quantum)
+Process Round_Robin(Node **Process_queue, int quantum)
 {
     int pid, status, sid;
     int current_clk = getClk();
@@ -102,14 +104,13 @@ void Round_Robin(Node **Process_queue, int quantum)
         {
             execl("./process.out", "process.out", argString1, argString2, argString3, argString4, NULL);
             perror("Erorr");
-            return;
+            exit(-1);
         }
-
 
         running.Remaining_Time = Recv_Signal();
       
         if (running.Remaining_Time > 0)
-            enqueue(Process_queue, running, 0);
+            return running;
         printQueue(&(*Process_queue));
         
         if(getClk()>=30)
@@ -128,10 +129,11 @@ int main(int argc, char *argv[])
     // upon termination release the clock resources.
     printf("\n%d\n", chosen);
     Process Currunt_process;
-    
+    printf("numOfProcess = %d\n", numOfProcess);
 
-
-    while ((numOfProcess > 0 || !isEmpty(&Process_queue)))
+    Process non_finished_process;
+    non_finished_process.Id = -1;
+    while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1)
     { // handle when multi process came in the same time
         Currunt_process = Recived_Process(&priority);
         while (Currunt_process.Arrive_Time != -1)
@@ -141,12 +143,16 @@ int main(int argc, char *argv[])
             numOfProcess--;
             Currunt_process = Recived_Process(&priority);
         }
+        if(non_finished_process.Id != -1){
+            enqueue(&Process_queue, non_finished_process, priority);
+            non_finished_process.Id = -1;
+        }
         if (chosen == 1)
             Non_preemptive_Highest_Priority_First(&Process_queue);
         else if (chosen == 2)
             Shortest_Remaining_time_Next(&Process_queue);
         else if (chosen == 3)
-            Round_Robin(&Process_queue, quantum);
+            non_finished_process = Round_Robin(&Process_queue, quantum);
     }
     while (wait(&quantum) > 0);        ;
 
