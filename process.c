@@ -37,7 +37,7 @@ int main(int agrc, char *argv[])
   int chosen = atoi(argv[3]);
   int prev = getClk();
   printf("process RT: %d id: %d clk: %d quantum:%d  chosen:%d\n", remainingtime, id, prev,quantum,chosen);
-  while (remainingtime > 0&&quantum>0)
+  while (remainingtime > 0 && quantum>0)
   {
     if (prev != getClk())
     {
@@ -46,10 +46,10 @@ int main(int agrc, char *argv[])
       prev = getClk();
     }
   }
-  if(remainingtime==0)
+  if(remainingtime == 0)
     printf("Process  FT = %d, ID = %d\n", getClk(),id);
   
-  if(chosen == 3)
+  if(chosen == 3 || chosen == 2)
     Send_Signal(remainingtime);
 
   exit(5);
