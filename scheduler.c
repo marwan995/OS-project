@@ -1,8 +1,7 @@
 #include "headers.h"
 int msgq_id;
-// marwansd
-//
-int Recived_Config(int *quantum,int*numOfProcess)
+
+int Recived_Config(int *quantum, int *numOfProcess)
 {
     key_t key_id;
     key_id = ftok("keyfile", 65);               // create unique key
@@ -12,27 +11,25 @@ int Recived_Config(int *quantum,int*numOfProcess)
         perror("Error in create");
         exit(-1);
     }
-    
     Config c;
-    int rec_val = msgrcv(msgq_id, &c, sizeof(c.Schedule),0, !IPC_NOWAIT); // 0
-
+    int rec_val = msgrcv(msgq_id, &c, sizeof(c.Schedule), 0, !IPC_NOWAIT); // 0
     if (rec_val == -1)
         perror("Error in receive");
     // else
     //     printf("\nMessage received: %d %d\n", c.Schedule[0], c.Schedule[1]);
     *quantum = c.Schedule[1];
-    *numOfProcess=c.Schedule[2];
+    *numOfProcess = c.Schedule[2];
     return c.Schedule[0];
 }
 Process Recived_Process(int *priority)
 {
-  //  printf("\nreciving\n");
+    //  printf("\nreciving\n");
     msgbuff m;
-    int send_val = msgrcv(msgq_id, &m, sizeof(m.p), 4, !IPC_NOWAIT);
-   
+    int recv_val = msgrcv(msgq_id, &m, sizeof(m.p), 4, IPC_NOWAIT);
     *priority = m.p.Priority;
-    printf("Recived process with id %d time %d\n",m.p.Id,getClk());
-
+    if(recv_val==-1)
+    m.p.Arrive_Time=-1;
+    else printf("Recived process with id %d time %d\n", m.p.Id, getClk());
     return m.p;
 }
 void Non_preemptive_Highest_Priority_First(Node **Process_queue)
@@ -41,7 +38,6 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
     while (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-
         char argString1[10];
         sprintf(argString1, " %d", running.Run_Time);
         char argString2[10];
@@ -55,48 +51,36 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         }
         if ((sid = wait(&status)) > 0)
         {
-           // printf("\nexit code %d\n", status >> 8);
-        }//must be there as they will work in parell if not
-       
+            // printf("\nexit code %d\n", status >> 8);
+        } // must be there as they will work in parell if not
     }
 }
 int main(int argc, char *argv[])
 {
     initClk();
-    int quantum,numOfProcess;
-    Recived_Config(&quantum,&numOfProcess);
+    int quantum, numOfProcess;
+    Recived_Config(&quantum, &numOfProcess);
     Node *Process_queue = NULL;
     int priority;
     //  TODO implement the scheduler :)
     // upon termination release the clock resources.
 
-     Process Currunt_process=Recived_Process(&priority);
-     enqueue(&Process_queue, Currunt_process, priority);
-     int prev =Currunt_process.Arrive_Time;
-     numOfProcess--;
+    Process Currunt_process;
 
-    
     while (numOfProcess)
-    { //handle when multi process came in the same time 
-        if(prev==Currunt_process.Arrive_Time){
-          while(prev==Currunt_process.Arrive_Time&&numOfProcess){
-             prev= Currunt_process.Arrive_Time;
-             Currunt_process = Recived_Process(&priority);
-             enqueue(&Process_queue, Currunt_process, priority);
-              numOfProcess--;
-       }
+    { // handle when multi process came in the same time
+
+        Currunt_process = Recived_Process(&priority);
+        while (Currunt_process.Arrive_Time!=-1)
+        {
+            enqueue(&Process_queue, Currunt_process, priority);
+            numOfProcess--;
+            Currunt_process = Recived_Process(&priority);
         }
-        else{
-              prev= Currunt_process.Arrive_Time;
-              Currunt_process = Recived_Process(&priority);
-             enqueue(&Process_queue, Currunt_process, priority);
-              numOfProcess--;
-        }
-            Non_preemptive_Highest_Priority_First(&Process_queue);
-       
+        Non_preemptive_Highest_Priority_First(&Process_queue);
     }
-    while (wait(&prev) > 0);
-    
+    while (wait(&quantum) > 0);
+
     destroyClk(true);
     return 0;
 }
