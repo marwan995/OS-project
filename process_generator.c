@@ -42,7 +42,7 @@ int Chosen_Algorithm(int *quantum)
   scanf("%d", &Chosen);
   if (Chosen == 3)
   {
-    printf("Enter the quantum size");
+    printf("Enter the quantum size: ");
     scanf("%d", quantum);
   }
   return Chosen;

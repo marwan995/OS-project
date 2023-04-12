@@ -8,7 +8,7 @@ typedef struct node {
     int priority;
     struct node* next;
 } Node;
-
+int size=0;
 Node* createNode(Process data, int priority) {
     Node* newNode = (Node*) malloc(sizeof(Node));
     newNode->data = data;
@@ -19,6 +19,7 @@ Node* createNode(Process data, int priority) {
 
 void enqueue(Node** head, Process data, int priority) {
     Node* newNode = createNode(data, priority);
+    size++;
     if (*head == NULL) {
         *head = newNode;
         return;
@@ -45,7 +46,8 @@ Process dequeue(Node** head) {
     Node* temp = *head;
     Process data = temp->data;
     *head = (*head)->next;
-    //free(temp);
+    free(temp);
+    size--;
     return data;
 }
 int isEmpty(Node** head) {
