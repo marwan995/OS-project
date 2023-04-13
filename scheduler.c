@@ -1,4 +1,6 @@
 #include "headers.h"
+#include <math.h>
+
 int msgq_id, chosen;
 key_t key_id;
 PCB Process_control[5];
@@ -32,18 +34,19 @@ int Recived_Config(int *quantum, int *numOfProcess)
     *numOfProcess = c.Schedule[2];
     return c.Schedule[0];
 }
-void New_File(){
+void New_File()
+{
 
     FILE *fp;
     char str[] = "#At time x process y state arrw total z remain y wait k\n";
     fp = fopen("scheduler.log", "w");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("Error opening file\n");
-        return 0; 
-         }
+        return;
+    }
     fputs(str, fp);
     fclose(fp);
-    return 1;
 }
 Process Recived_Process(int *priority)
 {
@@ -63,32 +66,40 @@ void add_to_PCB(Process p)
 {
     int index = p.Id - 1;
     Process_control[index].PID = p.Id;
-    strcpy(Process_control[index].state , "started");
+    strcpy(Process_control[index].state, "started");
     Process_control[index].Arrival_Time = p.Arrive_Time;
     Process_control[index].Start_Time = getClk();
-    Process_control[index].Waiting_Time = getClk()-p.Arrive_Time;
+    Process_control[index].Waiting_Time = getClk() - p.Arrive_Time;
     Process_control[index].Remaining_time = p.Remaining_Time;
     Process_control[index].Execution_time = p.Run_Time;
     Process_control[index].Finish_Time = 0;
 }
-int Write_to_schedulerLog(char state[],int wait,int id,int remain){
-FILE *fp;
-    char line[300];
-   
-    if(state!="finished")
- sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d\n", getClk(),id,state,Process_control[id-1].Arrival_Time,Process_control[id-1].Execution_time,remain,wait);
-   else{
-     int TA=Process_control[id-1].Finish_Time-Process_control[id-1].Arrival_Time;
-     int WTA=TA/Process_control[id-1].Execution_time;
- sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WTA %d\n", getClk(),id,state,Process_control[id-1].Arrival_Time,Process_control[id-1].Execution_time,remain,wait,TA,WTA);
-   }
+void RR_PCB(int ramining, int id)
+{
+    Process_control[id - 1].Remaining_time = ramining;
+    Process_control[id - 1].Stop_time = getClk();
+}
+int Write_to_schedulerLog(char state[], int wait, int id, int remain)
+{
+    FILE *fp;
+    char line[200];
+
+    if (state != "finished")
+        sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d\n", getClk(), id, state, Process_control[id - 1].Arrival_Time, Process_control[id - 1].Execution_time, remain, wait);
+    else
+    {
+        int TA = Process_control[id - 1].Finish_Time - Process_control[id - 1].Arrival_Time;
+        float WTA = (float)TA / Process_control[id - 1].Execution_time;
+        sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), id, state, Process_control[id - 1].Arrival_Time, Process_control[id - 1].Execution_time, remain, wait, TA, WTA);
+    }
     fp = fopen("scheduler.log", "a");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("Error opening file\n");
         return 0;
     }
 
-    fprintf(fp,line);
+    fprintf(fp, line);
     fclose(fp);
     return 1;
 }
@@ -109,7 +120,7 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         add_to_PCB(running);
 
         intToStrArray(running.Remaining_Time, running.Id, chosen, 10000, Args);
-        Write_to_schedulerLog("started",Process_control[running.Id-1].Waiting_Time,running.Id,running.Remaining_Time);
+        Write_to_schedulerLog("started", Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
         pid = fork();
         if (pid == 0)
         {
@@ -119,16 +130,51 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         }
         if ((sid = wait(&status)) > 0)
             ;
-        Process_control[running.Id-1].Finish_Time=getClk();  
-        Write_to_schedulerLog("finished",Process_control[running.Id-1].Waiting_Time,running.Id,0); 
+        Process_control[running.Id - 1].Finish_Time = getClk();
+        Write_to_schedulerLog("finished", Process_control[running.Id - 1].Waiting_Time, running.Id, 0);
     }
 }
-void print_pcb(){
+void print_pcb()
+{
     for (int i = 0; i < 5; i++)
     {
-        printf("pid=%d start_time:%d FT:%d  waittime: %d\n",Process_control[i].PID,Process_control[i].Start_Time,Process_control[i].Finish_Time,Process_control[i].Waiting_Time);
+        printf("pid=%d start_time:%d FT:%d  waittime: %d\n", Process_control[i].PID, Process_control[i].Start_Time, Process_control[i].Finish_Time, Process_control[i].Waiting_Time);
     }
-    
+}
+void scheduler_perf()
+{
+    int Worktime = 0, WaitTime = 0, TA = 0;
+    float WTA = 0.0;
+    for (int i = 0; i < 5; i++)
+    {
+        Worktime += Process_control[i].Execution_time;
+
+        WaitTime += Process_control[i].Finish_Time - Process_control[i].Arrival_Time - Process_control[i].Execution_time;
+        printf("WaitTime=%d\n", WaitTime);
+        WTA += (float)(Process_control[i].Finish_Time - Process_control[i].Arrival_Time) / Process_control[i].Execution_time;
+    }
+
+    FILE *fp;
+    char line[200];
+    fp = fopen("scheduler.pref", "w");
+    if (fp == NULL)
+    {
+        printf("Error opening file\n");
+        return;
+    }
+    float ut = ((float)Worktime / getClk()) * 100;
+    printf("clk:%d worktime:%d ut=%f\n", getClk(), Worktime, ut);
+    float sum = 0, AvgWTA = (float)WTA / 5;
+    for (int i = 0; i < 5; i++)
+    {
+        sum += pow(AvgWTA - ((float)(Process_control[i].Finish_Time - Process_control[i].Arrival_Time) / Process_control[i].Execution_time), 2);
+    }
+    float std = sqrt(sum / 5);
+
+    sprintf(line, "CPU utilization = %.2f\%\n Avg WTA = %.2f\n Avg Waiting = %.2f\n Std WTA = %.2f\n", ut, WTA / 5, (float)WaitTime / 5, std);
+
+    fputs(line, fp);
+    fclose(fp);
 }
 Process Round_Robin(Node **Process_queue, int quantum)
 {
@@ -138,7 +184,15 @@ Process Round_Robin(Node **Process_queue, int quantum)
     if (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
+        add_to_PCB(running);
+
         intToStrArray(running.Remaining_Time, running.Id, chosen, quantum, Args);
+        if (Process_control[running.Id - 1].Execution_time == Process_control[running.Id - 1].Remaining_time)
+            Write_to_schedulerLog("started", Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
+        else{
+            Process_control[running.Id - 1].Waiting_Time+=getClk()- Process_control[running.Id - 1].Stop_time;
+            Write_to_schedulerLog("resumed", Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
+        }
         int remaining = running.Remaining_Time;
         pid = fork();
         if (pid == 0)
@@ -150,7 +204,18 @@ Process Round_Robin(Node **Process_queue, int quantum)
         running.Remaining_Time = Recv_Signal();
 
         if (running.Remaining_Time > 0)
+        {
+             Process_control[running.Id - 1].Stop_time=getClk();
+
+            Write_to_schedulerLog("stopped", Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
             return running;
+        }
+        if (running.Remaining_Time == 0)
+        {
+            Process_control[running.Id - 1].Finish_Time = getClk();
+            Process_control[running.Id - 1].Waiting_Time=Process_control[running.Id - 1].Finish_Time-Process_control[running.Id - 1].Arrival_Time-Process_control[running.Id - 1].Execution_time;
+            Write_to_schedulerLog("finished", Process_control[running.Id - 1].Waiting_Time, running.Id, 0);
+        }
     }
     Process dummy;
     dummy.Id = -1;
@@ -172,7 +237,7 @@ int main(int argc, char *argv[])
     // upon termination release the clock resources.
     Process non_finished_process, Currunt_process;
     non_finished_process.Id = -1;
-  
+
     while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1)
     { // handle when multi process came in the same time
         Currunt_process = Recived_Process(&priority);
@@ -207,7 +272,8 @@ int main(int argc, char *argv[])
     }
     while (wait(&quantum) > 0)
         ;
-    print_pcb();
+    // print_pcb();
+    scheduler_perf();
     destroyClk(true);
     return 0;
 }
