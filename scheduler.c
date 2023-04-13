@@ -72,37 +72,6 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         if ((sid = wait(&status)) > 0);
     }
 }
-
-Process Shortest_Remaining_time_Next(Node **Process_queue)
-{
-    int pid, quantum = 1;
-    char Args [4][10];
-    int current_clk = getClk();
-    if (!isEmpty(&(*Process_queue)))
-    {
-        Process running = dequeue(&(*Process_queue));
-        intToStrArray(running.Remaining_Time,running.Id,chosen,quantum,Args);
-        int remaining = running.Remaining_Time;
-        pid = fork();
-        if (pid == 0)
-        {
-            execl("./process.out", "process.out", Args[0], Args[1], Args[2], Args[3], NULL);
-            perror("Erorr");
-        }
-
-        running.Remaining_Time = Recv_Signal();
-      
-        if (running.Remaining_Time > 0)
-            return running;
-        printQueue(&(*Process_queue));
-          
-    }
-    Process dummy;
-    dummy.Id=-1;
-    dummy.Arrive_Time=-1;
-    return dummy;
-}
-
 Process Round_Robin(Node **Process_queue, int quantum)
 {
     int pid;
@@ -129,6 +98,10 @@ Process Round_Robin(Node **Process_queue, int quantum)
     dummy.Id=-1;
     dummy.Arrive_Time=-1;
     return dummy;
+}
+Process Shortest_Remaining_time_Next(Node **Process_queue)
+{
+   return Round_Robin(Process_queue,1);
 }
 int main(int argc, char *argv[])
 {

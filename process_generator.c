@@ -1,11 +1,9 @@
 #include "headers.h"
 #include <string.h>
 #define Process struct Process
-#define msgbuff struct msgbuff
-#define Config struct Config
 int msgq_id,counter_of_process=0;
 void clearResources(int);
-
+//done
 Process File_To_Process(char line[])
 {
   Process single;
@@ -35,6 +33,7 @@ int Read_File(char File_Path[], Process Processes[])
   fclose(File);
   return counter_of_process;
 }
+//done
 int Chosen_Algorithm(int *quantum)
 {
   int Chosen = 2;
@@ -44,6 +43,11 @@ int Chosen_Algorithm(int *quantum)
   {
     printf("Enter the quantum size: ");
     scanf("%d", quantum);
+    *quantum=(*quantum)<1?1:(*quantum);
+  }
+  if(Chosen<1||Chosen>3){
+    printf("WRONG INPUT EXIT\n");
+    exit(-1);
   }
   return Chosen;
 }
