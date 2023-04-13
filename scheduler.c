@@ -141,10 +141,12 @@ Process Round_Robin(Node **Process_queue, int quantum)
       
         if (running.Remaining_Time > 0)
             return running;
-        printQueue(&(*Process_queue));
-        
-        
+       // printQueue(&(*Process_queue));
     }
+    Process dummy;
+    dummy.Id=-1;
+    dummy.Arrive_Time=-1;
+    return dummy;
 }
 int main(int argc, char *argv[])
 {
@@ -178,6 +180,7 @@ int main(int argc, char *argv[])
             if(chosen == 2){ // SRTN priority
                 priority = non_finished_process.Remaining_Time;
             }
+            else priority=0;
             enqueue(&Process_queue, non_finished_process, priority);
             non_finished_process.Id = -1;
         }
