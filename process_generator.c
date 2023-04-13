@@ -132,6 +132,7 @@ int main(int argc, char *argv[])
     }
   }
   printf("process generator off\n");
+   destroyClk(false);
   return 0;
 }
 

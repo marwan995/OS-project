@@ -47,59 +47,47 @@ Process Recived_Process(int *priority)
     return m.p;
 }
 
+void intToStrArray(int num1, int num2, int num3, int num4,char strArr [4][10]) {
+    sprintf(strArr[0], "%d", num1);
+    sprintf(strArr[1], "%d", num2);
+    sprintf(strArr[2], "%d", num3);
+    sprintf(strArr[3], "%d", num4);
 
+}
 void Non_preemptive_Highest_Priority_First(Node **Process_queue)
 {
     int pid, status, sid;
+    char Args [4][10];
     while (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-        char argString1[10];
-        sprintf(argString1, " %d", running.Remaining_Time);
-        char argString2[10];
-        sprintf(argString2, " %d", running.Id);
-        char argString3[10];
-        sprintf(argString3, " %d", chosen);    
-        char argString4[10]; 
-        sprintf(argString4, " %d", 10000000);
+        intToStrArray(running.Remaining_Time,running.Id,chosen,10000,Args);
         pid = fork();
         if (pid == 0)
         {
-            execl("./process.out", "process.out", argString1, argString2, argString3, argString4, NULL);
+            execl("./process.out", "process.out",Args[0], Args[1], Args[2], Args[3], NULL);
             perror("erorr");
             return;
         }
-        if ((sid = wait(&status)) > 0)
-        {
-            // printf("\nexit code %d\n", status >> 8);
-        } // must be there as they will work in parell if not
+        if ((sid = wait(&status)) > 0);
     }
 }
 
 Process Shortest_Remaining_time_Next(Node **Process_queue)
 {
-    int pid, status, sid, quantum = 1;
+    int pid, quantum = 1;
+    char Args [4][10];
     int current_clk = getClk();
     if (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-        char argString1[10];
-        sprintf(argString1, " %d", running.Remaining_Time);
-        char argString2[10];
-        sprintf(argString2, " %d", running.Id);
-        char argString3[10];
-        sprintf(argString3, " %d", chosen);    
-        char argString4[10]; 
-        sprintf(argString4, " %d", quantum);
-       // printf("before send RT: %d id: %d chosen:%d  quantum:%d\n", running.Remaining_Time, running.Id, chosen, quantum);
-
+        intToStrArray(running.Remaining_Time,running.Id,chosen,quantum,Args);
         int remaining = running.Remaining_Time;
         pid = fork();
         if (pid == 0)
         {
-            execl("./process.out", "process.out", argString1, argString2, argString3, argString4, NULL);
+            execl("./process.out", "process.out", Args[0], Args[1], Args[2], Args[3], NULL);
             perror("Erorr");
-            //exit(-1);
         }
 
         running.Remaining_Time = Recv_Signal();
@@ -109,39 +97,33 @@ Process Shortest_Remaining_time_Next(Node **Process_queue)
         printQueue(&(*Process_queue));
           
     }
+    Process dummy;
+    dummy.Id=-1;
+    dummy.Arrive_Time=-1;
+    return dummy;
 }
 
 Process Round_Robin(Node **Process_queue, int quantum)
 {
-    int pid, status, sid;
+    int pid;
+    char Args [4][10];
     int current_clk = getClk();
     if (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-        char argString1[10];
-        sprintf(argString1, " %d", running.Remaining_Time);
-        char argString2[10];
-        sprintf(argString2, " %d", running.Id);
-        char argString3[10];
-        sprintf(argString3, " %d", chosen);    
-        char argString4[10]; 
-        sprintf(argString4, " %d", quantum);
-       // printf("before send RT: %d id: %d chosen:%d  quantum:%d\n", running.Remaining_Time, running.Id, chosen, quantum);
-
+        intToStrArray(running.Remaining_Time,running.Id,chosen,quantum,Args);
         int remaining = running.Remaining_Time;
         pid = fork();
         if (pid == 0)
         {
-            execl("./process.out", "process.out", argString1, argString2, argString3, argString4, NULL);
+            execl("./process.out", "process.out", Args[0], Args[1], Args[2], Args[3], NULL);
             perror("Erorr");
             //exit(-1);
         }
-
         running.Remaining_Time = Recv_Signal();
       
         if (running.Remaining_Time > 0)
             return running;
-       // printQueue(&(*Process_queue));
     }
     Process dummy;
     dummy.Id=-1;
@@ -151,17 +133,13 @@ Process Round_Robin(Node **Process_queue, int quantum)
 int main(int argc, char *argv[])
 {
     initClk();
-    int quantum, numOfProcess;
+    int quantum, numOfProcess,priority = 0;
     chosen = Recived_Config(&quantum, &numOfProcess);
     Node *Process_queue = NULL;
-    int priority = 0;
+
     //  TODO implement the scheduler :)
     // upon termination release the clock resources.
-    printf("\n%d\n", chosen);
-    Process Currunt_process;
-    printf("numOfProcess = %d\n", numOfProcess);
-
-    Process non_finished_process;
+    Process non_finished_process,Currunt_process;
     non_finished_process.Id = -1;
     while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1)
     { // handle when multi process came in the same time
