@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include"PQueue.h"
+#include <string.h>
 typedef short bool;
 #define true 1
 #define false 0
@@ -18,7 +19,7 @@ typedef short bool;
 #define SHKEY 300
 #define msgbuff struct msgbuff
 #define Config  struct Config 
-
+#define PCB  struct PCB
 
 ///==============================
 //don't mess with this variable//
@@ -35,7 +36,10 @@ Config
     long mtype;
     int Schedule[3];
 };
-
+PCB{
+    char state[10];
+    int Execution_time,Remaining_time,Arrival_Time,Waiting_Time,PID,Finish_Time,Start_Time,Stop_time;
+};
 
 int getClk()
 {

@@ -1,14 +1,15 @@
 #include "headers.h"
 int msgq_id, chosen;
 key_t key_id;
+PCB Process_control[5];
 
 int Recv_Signal()
 {
-    key_t process_key = ftok("pidfile", 75);               // create unique key
+    key_t process_key = ftok("pidfile", 75);                     // create unique key
     int process_msgq_id = msgget(process_key, 0644 | IPC_CREAT); // create message queue and return id
     Config to_recv;
     int rec_val = msgrcv(process_msgq_id, &to_recv, sizeof(to_recv.Schedule), 65, !IPC_NOWAIT); // 0
-    
+
     if (rec_val == -1)
         perror("reciving");
     return to_recv.Schedule[0];
@@ -31,7 +32,19 @@ int Recived_Config(int *quantum, int *numOfProcess)
     *numOfProcess = c.Schedule[2];
     return c.Schedule[0];
 }
+void New_File(){
 
+    FILE *fp;
+    char str[] = "#At time x process y state arrw total z remain y wait k\n";
+    fp = fopen("scheduler.log", "w");
+    if (fp == NULL) {
+        printf("Error opening file\n");
+        return 0; 
+         }
+    fputs(str, fp);
+    fclose(fp);
+    return 1;
+}
 Process Recived_Process(int *priority)
 {
     msgbuff m;
@@ -46,80 +59,127 @@ Process Recived_Process(int *priority)
         printf("Recived process with id %d time %d\n", m.p.Id, getClk());
     return m.p;
 }
+void add_to_PCB(Process p)
+{
+    int index = p.Id - 1;
+    Process_control[index].PID = p.Id;
+    strcpy(Process_control[index].state , "started");
+    Process_control[index].Arrival_Time = p.Arrive_Time;
+    Process_control[index].Start_Time = getClk();
+    Process_control[index].Waiting_Time = getClk()-p.Arrive_Time;
+    Process_control[index].Remaining_time = p.Remaining_Time;
+    Process_control[index].Execution_time = p.Run_Time;
+    Process_control[index].Finish_Time = 0;
+}
+int Write_to_schedulerLog(char state[],int wait,int id,int remain){
+FILE *fp;
+    char line[300];
+   
+    if(state!="finished")
+ sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d\n", getClk(),id,state,Process_control[id-1].Arrival_Time,Process_control[id-1].Execution_time,remain,wait);
+   else{
+     int TA=Process_control[id-1].Finish_Time-Process_control[id-1].Arrival_Time;
+     int WTA=TA/Process_control[id-1].Execution_time;
+ sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WTA %d\n", getClk(),id,state,Process_control[id-1].Arrival_Time,Process_control[id-1].Execution_time,remain,wait,TA,WTA);
+   }
+    fp = fopen("scheduler.log", "a");
+    if (fp == NULL) {
+        printf("Error opening file\n");
+        return 0;
+    }
 
-void intToStrArray(int num1, int num2, int num3, int num4,char strArr [4][10]) {
+    fprintf(fp,line);
+    fclose(fp);
+    return 1;
+}
+void intToStrArray(int num1, int num2, int num3, int num4, char strArr[4][10])
+{
     sprintf(strArr[0], "%d", num1);
     sprintf(strArr[1], "%d", num2);
     sprintf(strArr[2], "%d", num3);
     sprintf(strArr[3], "%d", num4);
-
 }
 void Non_preemptive_Highest_Priority_First(Node **Process_queue)
 {
     int pid, status, sid;
-    char Args [4][10];
+    char Args[4][10];
     while (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-        intToStrArray(running.Remaining_Time,running.Id,chosen,10000,Args);
+        add_to_PCB(running);
+
+        intToStrArray(running.Remaining_Time, running.Id, chosen, 10000, Args);
+        Write_to_schedulerLog("started",Process_control[running.Id-1].Waiting_Time,running.Id,running.Remaining_Time);
         pid = fork();
         if (pid == 0)
         {
-            execl("./process.out", "process.out",Args[0], Args[1], Args[2], Args[3], NULL);
+            execl("./process.out", "process.out", Args[0], Args[1], Args[2], Args[3], NULL);
             perror("erorr");
             return;
         }
-        if ((sid = wait(&status)) > 0);
+        if ((sid = wait(&status)) > 0)
+            ;
+        Process_control[running.Id-1].Finish_Time=getClk();  
+        Write_to_schedulerLog("finished",Process_control[running.Id-1].Waiting_Time,running.Id,0); 
     }
+}
+void print_pcb(){
+    for (int i = 0; i < 5; i++)
+    {
+        printf("pid=%d start_time:%d FT:%d  waittime: %d\n",Process_control[i].PID,Process_control[i].Start_Time,Process_control[i].Finish_Time,Process_control[i].Waiting_Time);
+    }
+    
 }
 Process Round_Robin(Node **Process_queue, int quantum)
 {
     int pid;
-    char Args [4][10];
+    char Args[4][10];
     int current_clk = getClk();
     if (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-        intToStrArray(running.Remaining_Time,running.Id,chosen,quantum,Args);
+        intToStrArray(running.Remaining_Time, running.Id, chosen, quantum, Args);
         int remaining = running.Remaining_Time;
         pid = fork();
         if (pid == 0)
         {
             execl("./process.out", "process.out", Args[0], Args[1], Args[2], Args[3], NULL);
             perror("Erorr");
-            //exit(-1);
+            // exit(-1);
         }
         running.Remaining_Time = Recv_Signal();
-      
+
         if (running.Remaining_Time > 0)
             return running;
     }
     Process dummy;
-    dummy.Id=-1;
-    dummy.Arrive_Time=-1;
+    dummy.Id = -1;
+    dummy.Arrive_Time = -1;
     return dummy;
 }
 Process Shortest_Remaining_time_Next(Node **Process_queue)
 {
-   return Round_Robin(Process_queue,1);
+    return Round_Robin(Process_queue, 1);
 }
 int main(int argc, char *argv[])
 {
     initClk();
-    int quantum, numOfProcess,priority = 0;
+    int quantum, numOfProcess, priority = 0;
+    New_File();
     chosen = Recived_Config(&quantum, &numOfProcess);
     Node *Process_queue = NULL;
-
     //  TODO implement the scheduler :)
     // upon termination release the clock resources.
-    Process non_finished_process,Currunt_process;
+    Process non_finished_process, Currunt_process;
     non_finished_process.Id = -1;
+  
     while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1)
     { // handle when multi process came in the same time
         Currunt_process = Recived_Process(&priority);
         while (Currunt_process.Arrive_Time != -1)
         {
-            if(chosen == 2){ // SRTN priority
+            if (chosen == 2)
+            { // SRTN priority
                 priority = Currunt_process.Remaining_Time;
             }
             printf("Id = %d\n", Currunt_process.Id);
@@ -127,11 +187,14 @@ int main(int argc, char *argv[])
             numOfProcess--;
             Currunt_process = Recived_Process(&priority);
         }
-        if(non_finished_process.Id != -1){
-            if(chosen == 2){ // SRTN priority
+        if (non_finished_process.Id != -1)
+        {
+            if (chosen == 2)
+            { // SRTN priority
                 priority = non_finished_process.Remaining_Time;
             }
-            else priority=0;
+            else
+                priority = 0;
             enqueue(&Process_queue, non_finished_process, priority);
             non_finished_process.Id = -1;
         }
@@ -142,8 +205,9 @@ int main(int argc, char *argv[])
         else if (chosen == 3)
             non_finished_process = Round_Robin(&Process_queue, quantum);
     }
-    while (wait(&quantum) > 0);        ;
-
+    while (wait(&quantum) > 0)
+        ;
+    print_pcb();
     destroyClk(true);
     return 0;
 }
