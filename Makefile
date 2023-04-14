@@ -14,4 +14,4 @@ test:
 all: clean build test run
 
 run:
-	./process_generator.out
+	./process_generator.out || exit 1

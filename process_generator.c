@@ -140,9 +140,11 @@ int main(int argc, char *argv[])
 
 void clearResources(int signum)
 {
-     while (wait(&signum) > 0) //wait for clk and scheduler
+  printf("process_generator Terminating!\n");
+  destroyClk(false);
+  while (wait(&signum) > 0) //wait for clk and scheduler
         ;
 
-         destroyClk(false);
-  exit(-1);
+    exit(0);
+         
 }

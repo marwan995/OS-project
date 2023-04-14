@@ -3,9 +3,10 @@
 
 PCB *Process_control;
 int chosen, process_msgq_id = -1, msgq_id = -1;
+int clearResources_flag=0;
 void clearResources()
 {
-
+    if(clearResources_flag)  exit(0);
     free(Process_control);
     if (process_msgq_id != -1 && msgctl(process_msgq_id, IPC_RMID, NULL) == -1)
     {
@@ -15,7 +16,11 @@ void clearResources()
     {
          perror("Error: failed to remove message queue process in shcadual");
     }
-    destroyClk(false);
+    printf("Scheduler Terminating!\n");
+    clearResources_flag=1;
+    destroyClk(true);
+   exit(0);
+
 }
 int Recv_Signal()
 {
@@ -87,7 +92,7 @@ void Write_to_schedulerLog(int id)
     else
     {
         int TA = Process_control[id - 1].Finish_Time - Process_control[id - 1].Arrival_Time;
-        float WTA = (float)TA / Process_control[id - 1].Execution_time + EPS;
+        float WTA =Process_control[id - 1].Execution_time>0? (float)TA / Process_control[id - 1].Execution_time + EPS:0;
         sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), id, state, Process_control[id - 1].Arrival_Time, Process_control[id - 1].Execution_time, remain, wait, TA, WTA);
     }
     fp = fopen("scheduler.log", "a");
@@ -149,7 +154,7 @@ void scheduler_pref(int size)
         Worktime += Process_control[i].Execution_time;
         WaitTime += Process_control[i].Finish_Time - Process_control[i].Arrival_Time - Process_control[i].Execution_time;
         TA = Process_control[i].Finish_Time - Process_control[i].Arrival_Time;
-        WTA += (float)(TA) / Process_control[i].Execution_time;
+        WTA +=  Process_control[i].Execution_time>0?(float)(TA) / Process_control[i].Execution_time:0;
     }
 
     float ut = ((float)Worktime / getClk()) * 100 + EPS;
@@ -158,7 +163,7 @@ void scheduler_pref(int size)
     for (int i = 0; i < size; i++)
     {
         TA = Process_control[i].Finish_Time - Process_control[i].Arrival_Time;
-        sum += pow(AvgWTA - ((float)TA / Process_control[i].Execution_time), 2);
+        sum += pow(AvgWTA - (Process_control[i].Execution_time>0?(float)TA / Process_control[i].Execution_time:0), 2);
     }
     float std = sqrt(sum / size) + EPS;
 

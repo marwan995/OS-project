@@ -3,8 +3,8 @@ int remainingtime;
 
 void handler(int Signum)
 {
-  //printf("process killed \n");
-  exit(-1);
+  printf("process Terminating \n");
+  exit(0);
 }
 
 int Send_Signal(int rt)
