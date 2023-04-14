@@ -3,7 +3,7 @@ int remainingtime;
 
 void handler(int Signum)
 {
-  printf("process killed \n");
+  //printf("process killed \n");
   exit(-1);
 }
 
@@ -33,10 +33,6 @@ int main(int agrc, char *argv[])
   int quantum = atoi(argv[4]);
   int chosen = atoi(argv[3]);
   int prev = getClk();
-  if(chosen==3)
-  printf("process RT: %d id: %d clk: %d quantum:%d\n", remainingtime, id, prev,quantum);
-  else
-  printf("process RT: %d id: %d clk: %d\n", remainingtime, id, prev);
   while (remainingtime > 0 && quantum>0)
   {
     if (prev != getClk())
@@ -46,9 +42,9 @@ int main(int agrc, char *argv[])
       prev = getClk();
     }
   }
-  if(remainingtime == 0)
-    printf("Process  FT = %d, ID = %d\n", getClk(),id);
-  
+  if(remainingtime == 0){
+    printf("process %d has done at %d\n", id, getClk());
+  }
   if(chosen == 3 || chosen == 2)
     Send_Signal(remainingtime);
   destroyClk(false);
