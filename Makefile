@@ -11,7 +11,7 @@ clean:
 test:
 	./test_generator.out
 
-all: clean build run
+all: clean build test run
 
 run:
 	./process_generator.out

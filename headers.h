@@ -19,7 +19,7 @@ typedef short bool;
 
 #define SHKEY 300
 #define msgbuff struct msgbuff
-#define Config  struct Config 
+#define ProcessSignal  struct ProcessSignal 
 #define PCB  struct PCB
 
 ///==============================
@@ -32,14 +32,14 @@ msgbuff
     long mtype;
     Process p;
 };
-Config
+ProcessSignal
 {
     long mtype;
-    int Schedule[3];
+    int Remaining_Time;
 };
 PCB{
     char state[10];
-    int Execution_time,Remaining_time,Arrival_Time,Waiting_Time,PID,Finish_Time,Start_Time,Stop_time;
+    int Execution_time,Remaining_time,Arrival_Time,Waiting_Time,PID,Finish_Time,Start_Time;
 };
 
 int getClk()
