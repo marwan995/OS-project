@@ -72,11 +72,7 @@ void add_to_PCB(Process p)
     Process_control[index].Execution_time = p.Run_Time;
     Process_control[index].Finish_Time = 0;
 }
-void RR_PCB(int ramining, int id)
-{
-    Process_control[id - 1].Remaining_time = ramining;
-    Process_control[id - 1].Stop_time = getClk();
-}
+
 int Write_to_schedulerLog(int wait, int id, int remain)
 {
     FILE *fp;
@@ -184,7 +180,10 @@ Process Round_Robin(Node **Process_queue, int quantum)
             Write_to_schedulerLog( Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
         }
         else{
-            Process_control[running.Id - 1].Waiting_Time+=getClk()- Process_control[running.Id - 1].Stop_time;
+            int arr_time = Process_control[running.Id - 1].Arrival_Time;
+            int exec_time = Process_control[running.Id - 1].Execution_time;
+            int rem_time = Process_control[running.Id - 1].Remaining_time;
+            Process_control[running.Id - 1].Waiting_Time = getClk() - arr_time - (exec_time - rem_time);
             strcpy(Process_control[running.Id-1].state,"resumed");
             Write_to_schedulerLog(Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
         }
@@ -197,10 +196,10 @@ Process Round_Robin(Node **Process_queue, int quantum)
             // exit(-1);
         }
         running.Remaining_Time = Recv_Signal();
+        Process_control[running.Id - 1].Remaining_time = running.Remaining_Time;
 
         if (running.Remaining_Time > 0)
         {
-             Process_control[running.Id - 1].Stop_time=getClk();
              strcpy(Process_control[running.Id-1].state,"stopped");
             Write_to_schedulerLog( Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
             return running;
