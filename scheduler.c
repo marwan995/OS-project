@@ -1,11 +1,8 @@
 #include "headers.h"
-#include <math.h>
 
 int msgq_id, chosen;
 key_t key_id;
 PCB *Process_control;
-
-
 int Recv_Signal()
 {
     key_t process_key = ftok("pidfile", 75);                     // create unique key
@@ -39,7 +36,7 @@ void New_File()
 {
 
     FILE *fp;
-    char str[] = "#At time x process y state arrw total z remain y wait k\n";
+    char str[] = "#At time x process y state arr w total z remain y wait k\n";
     fp = fopen("scheduler.log", "w");
     if (fp == NULL)
     {
@@ -86,7 +83,7 @@ int Write_to_schedulerLog(int wait, int id, int remain)
     char line[200];
     char state[50];
     strcpy(state,Process_control[id-1].state);
-    if (state != "finished")
+    if (strcmp(state,"finished")!=0)
         sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d\n", getClk(), id, state, Process_control[id - 1].Arrival_Time, Process_control[id - 1].Execution_time, remain, wait);
     else
     {
@@ -137,13 +134,6 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         Write_to_schedulerLog( Process_control[running.Id - 1].Waiting_Time, running.Id, 0);
     }
 }
-// void print_pcb()
-// {
-//     for (int i = 0; i < 5; i++)
-//     {
-//         printf("pid=%d start_time:%d FT:%d  waittime: %d\n", Process_control[i].PID, Process_control[i].Start_Time, Process_control[i].Finish_Time, Process_control[i].Waiting_Time);
-//     }
-// }
 void scheduler_perf(int size)
 {
     int Worktime = 0, WaitTime = 0, TA = 0;
@@ -174,7 +164,7 @@ void scheduler_perf(int size)
     }
     float std = sqrt(sum / size);
 
-    sprintf(line, "CPU utilization = %.2f\%\n Avg WTA = %.2f\n Avg Waiting = %.2f\n Std WTA = %.2f\n", ut, WTA / size, (float)WaitTime / size, std);
+    sprintf(line, "CPU utilization = %.2f\%\nAvg WTA = %.2f\nAvg Waiting = %.2f\nStd WTA = %.2f\n", ut, WTA / size, (float)WaitTime / size, std);
 
     fputs(line, fp);
     fclose(fp);
@@ -187,20 +177,18 @@ Process Round_Robin(Node **Process_queue, int quantum)
     if (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-        add_to_PCB(running);
-
         intToStrArray(running.Remaining_Time, running.Id, chosen, quantum, Args);
-        if (Process_control[running.Id - 1].Execution_time == Process_control[running.Id - 1].Remaining_time){
+        if (running.Run_Time == running.Remaining_Time){
+            add_to_PCB(running);
             strcpy(Process_control[running.Id-1].state,"started");
             Write_to_schedulerLog( Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
         }
         else{
             Process_control[running.Id - 1].Waiting_Time+=getClk()- Process_control[running.Id - 1].Stop_time;
-            printf("\nbefore resumed id %d stoptime:%d last wait:%d current clk %d\n",running.Id,Process_control[running.Id - 1].Stop_time,Process_control[running.Id - 1].Waiting_Time,getClk());
             strcpy(Process_control[running.Id-1].state,"resumed");
             Write_to_schedulerLog(Process_control[running.Id - 1].Waiting_Time, running.Id, running.Remaining_Time);
         }
-        int remaining = running.Remaining_Time;
+
         pid = fork();
         if (pid == 0)
         {

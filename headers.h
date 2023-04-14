@@ -12,6 +12,7 @@
 #include <signal.h>
 #include"PQueue.h"
 #include <string.h>
+#include <math.h>
 typedef short bool;
 #define true 1
 #define false 0
