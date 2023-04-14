@@ -1,4 +1,6 @@
 #include "headers.h"
+#define EPS 0.001
+
 PCB *Process_control;
 int chosen, process_msgq_id = -1, msgq_id = -1;
 void clearResources()
@@ -11,7 +13,7 @@ void clearResources()
     }
     if (msgq_id != -1 && msgctl(msgq_id, IPC_RMID, NULL) == -1)
     {
-        perror("Error: failed to remove message queue process in shcadual");
+         perror("Error: failed to remove message queue process in shcadual");
     }
     destroyClk(false);
 }
@@ -41,7 +43,7 @@ void New_File()
 }
 Process Recived_Process(int *priority)
 {
-    key_t key_id = ftok("keyfile", 65);         // create unique key
+    key_t key_id = ftok("keyfile", 77);         // create unique key
     msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
     if (msgq_id == -1)
     {
@@ -60,14 +62,14 @@ Process Recived_Process(int *priority)
         printf("Recived process with id %d time %d\n", m.p.Id, getClk());
     return m.p;
 }
-void add_to_PCB(Process p)
+void make_PCB(Process p)
 {
     int index = p.Id - 1;
     Process_control[index].PID = p.Id;
     strcpy(Process_control[index].state, "started");
     Process_control[index].Arrival_Time = p.Arrive_Time;
     Process_control[index].Start_Time = getClk();
-    Process_control[index].Waiting_Time = getClk() - p.Arrive_Time;
+    Process_control[index].Waiting_Time = getClk() - p.Arrive_Time - (p.Run_Time - p.Remaining_Time);
     Process_control[index].Remaining_time = p.Remaining_Time;
     Process_control[index].Execution_time = p.Run_Time;
     Process_control[index].Finish_Time = 0;
@@ -85,7 +87,7 @@ void Write_to_schedulerLog(int id)
     else
     {
         int TA = Process_control[id - 1].Finish_Time - Process_control[id - 1].Arrival_Time;
-        float WTA = (float)TA / Process_control[id - 1].Execution_time;
+        float WTA = (float)TA / Process_control[id - 1].Execution_time + EPS;
         sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), id, state, Process_control[id - 1].Arrival_Time, Process_control[id - 1].Execution_time, remain, wait, TA, WTA);
     }
     fp = fopen("scheduler.log", "a");
@@ -112,7 +114,7 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
     while (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-        add_to_PCB(running);
+        make_PCB(running);
 
         intToStrArray(running.Remaining_Time, running.Id, chosen, 10000, Args);
         Write_to_schedulerLog(running.Id);
@@ -150,17 +152,17 @@ void scheduler_pref(int size)
         WTA += (float)(TA) / Process_control[i].Execution_time;
     }
 
-    float ut = ((float)Worktime / getClk()) * 100;
-    printf("clk:%d worktime:%d ut=%f\n", getClk(), Worktime, ut);
-    float sum = 0, AvgWTA = (float)WTA / size;
+    float ut = ((float)Worktime / getClk()) * 100 + EPS;
+   // printf("clk:%d worktime:%d ut=%f\n", getClk(), Worktime, ut);
+    float sum = 0, AvgWTA = (float)WTA / size + EPS;
     for (int i = 0; i < size; i++)
     {
         TA = Process_control[i].Finish_Time - Process_control[i].Arrival_Time;
         sum += pow(AvgWTA - ((float)TA / Process_control[i].Execution_time), 2);
     }
-    float std = sqrt(sum / size);
+    float std = sqrt(sum / size) + EPS;
 
-    sprintf(line, "CPU utilization = %.2f%%\nAvg WTA = %.2f\nAvg Waiting = %.2f\nStd WTA = %.2f\n", ut, WTA / size, (float)WaitTime / size, std);
+    sprintf(line, "CPU utilization = %.2f%%\nAvg WTA = %.2f\nAvg Waiting = %.2f\nStd WTA = %.2f\n", ut, WTA / size + EPS, (float)WaitTime / size + EPS, std);
     fputs(line, fp);
     fclose(fp);
 }
@@ -174,11 +176,12 @@ Process Round_Robin(Node **Process_queue, int quantum)
         intToStrArray(running.Remaining_Time, running.Id, chosen, quantum, Args);
         if (running.Run_Time == running.Remaining_Time) // if first time to run add it to pcb and write it in schedulerLog
         {
-            add_to_PCB(running);
+            make_PCB(running);
             Write_to_schedulerLog(running.Id);
         }
         else
         {
+            // update just the wait time
             int arr_time = Process_control[running.Id - 1].Arrival_Time;
             int exec_time = Process_control[running.Id - 1].Execution_time;
             int rem_time = Process_control[running.Id - 1].Remaining_time;
@@ -203,7 +206,7 @@ Process Round_Robin(Node **Process_queue, int quantum)
             Write_to_schedulerLog(running.Id);
             return running;
         }
-        if (running.Remaining_Time == 0)
+        else if (running.Remaining_Time == 0)
         {
             Process_control[running.Id - 1].Finish_Time = getClk();
             Process_control[running.Id - 1].Waiting_Time = Process_control[running.Id - 1].Finish_Time - Process_control[running.Id - 1].Arrival_Time - Process_control[running.Id - 1].Execution_time;
