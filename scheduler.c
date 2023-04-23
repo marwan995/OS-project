@@ -1,9 +1,11 @@
 #include "headers.h"
 #define EPS 0.001
-
+#define memo_size 1024
 PCB *Process_control;
 int chosen, process_msgq_id = -1, msgq_id = -1;
 int clearResources_flag=0;
+int memory[memo_size];
+
 void clearResources()
 {
     if(clearResources_flag)  exit(0);
@@ -112,6 +114,41 @@ void intToStrArray(int num1, int num2, int num3, int num4, char strArr[4][10])
     sprintf(strArr[2], "%d", num3);
     sprintf(strArr[3], "%d", num4);
 }
+int get_free_memory_FF(int size, int id){  // free memory for first fit
+    //printf("memory[0] = %d\n", memory[0]);
+    for(int i = 0;i < memo_size; i++){
+        if(memory[i] == 0){
+            int cnt = 0;
+            for(int j = i; cnt < size; j++) {
+                if(memory[j%memo_size] == 0) cnt++;
+                else break;
+            }
+            // memory[i] = id -> start of memory
+            // memory[i] = -1 -> you cannot take this location, it's reserved
+            if(cnt == size) {
+                memory[i] = id;
+                if(id == 1) printf("reserved memroy\n");
+                cnt = 1;
+                for(int j = i+1; cnt < size; j++, cnt++){
+                    memory[j%memo_size] = -1;  
+                }
+                return i;
+            }
+        }
+    }
+
+    return -1;
+}
+void free_memory(int size, int id){
+    int start = 0;
+    while (start < memo_size)
+    {
+        if(memory[start] == id) break;
+        start++;
+    }
+    for(int i = 0, j = start; i < size; i++, j++) memory[j%memo_size] = 0;
+}
+
 void Non_preemptive_Highest_Priority_First(Node **Process_queue)
 {
     int pid, status, sid;
@@ -119,6 +156,12 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
     while (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
+
+        // if process has no free memory continue
+        int memo_index = get_free_memory_FF(running.Mem_Size, running.Id); 
+        if(memo_index == -1) {
+            enqueue(&(*Process_queue), running, running.Priority);
+        }
         make_PCB(running);
 
         intToStrArray(running.Remaining_Time, running.Id, chosen, 10000, Args);
@@ -133,6 +176,7 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         if ((sid = wait(&status)) > 0)
             ;
         Process_control[running.Id - 1].Finish_Time = getClk();
+        free_memory(running.Mem_Size, running.Id);
         strcpy(Process_control[running.Id - 1].state, "finished");
         Write_to_schedulerLog(running.Id);
     }
@@ -178,6 +222,12 @@ Process Round_Robin(Node **Process_queue, int quantum)
     if (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
+        int memo_index = get_free_memory_FF(running.Mem_Size, running.Id); 
+        printf("memo_indx = -1, id = %d, memo_size = %d\n", running.Id, running.Mem_Size);
+        if(memo_index == -1){
+            return running;
+        }
+
         intToStrArray(running.Remaining_Time, running.Id, chosen, quantum, Args);
         if (running.Run_Time == running.Remaining_Time) // if first time to run add it to pcb and write it in schedulerLog
         {
@@ -205,6 +255,8 @@ Process Round_Robin(Node **Process_queue, int quantum)
         running.Remaining_Time = Recv_Signal();
         Process_control[running.Id - 1].Remaining_time = running.Remaining_Time;
 
+        // after the process finishes its quantum free its memory space
+
         if (running.Remaining_Time > 0)
         {
             strcpy(Process_control[running.Id - 1].state, "stopped");
@@ -215,6 +267,7 @@ Process Round_Robin(Node **Process_queue, int quantum)
         {
             Process_control[running.Id - 1].Finish_Time = getClk();
             Process_control[running.Id - 1].Waiting_Time = Process_control[running.Id - 1].Finish_Time - Process_control[running.Id - 1].Arrival_Time - Process_control[running.Id - 1].Execution_time;
+            free_memory(running.Mem_Size, running.Id);
             strcpy(Process_control[running.Id - 1].state, "finished");
             Write_to_schedulerLog(running.Id);
         }
@@ -242,12 +295,13 @@ int main(int argc, char *argv[])
     Process non_finished_process, Currunt_process;
     non_finished_process.Id = -1;
     New_File(); // init the Schaduluer.log file
-
+    for(int i = 0; i < memo_size; i++) memory[i] = 0;
     while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1)
     {
         Currunt_process = Recived_Process(&priority);
         while (Currunt_process.Arrive_Time != -1) // while there is a process recive it
         {
+            printf("recived process\n");
             if (chosen == 2)
                 // SRTN priority
                 priority = Currunt_process.Remaining_Time;

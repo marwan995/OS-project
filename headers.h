@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include"PQueue.h"
+#include "PQueue.h"
+#include "tree.h"
 #include <string.h>
 #include <math.h>
 typedef short bool;
@@ -39,7 +40,10 @@ ProcessSignal
 };
 PCB{
     char state[10];
-    int Execution_time,Remaining_time,Arrival_Time,Waiting_Time,PID,Finish_Time,Start_Time;
+    int Execution_time,
+        Remaining_time,Arrival_Time
+        ,Waiting_Time,PID,Finish_Time,
+        Start_Time, Mem_Size;
 };
 
 int getClk()

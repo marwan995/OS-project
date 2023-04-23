@@ -17,6 +17,7 @@ Process Process_handler(char line[])
   single.Arrive_Time = atoi(strtok(NULL, "\t"));
   single.Run_Time = atoi(strtok(NULL, "\t"));
   single.Priority = atoi(strtok(NULL, "\t"));
+  single.Mem_Size = atoi(strtok(NULL, "\t"));
   single.Remaining_Time = single.Run_Time;
   return single;
 }
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
   char Scheduler_Args[3][10];
   int counter_of_process, chosen, quantum, Currunt_proccess_index = 0;
   // 1. Read the input files.
-  counter_of_process = Read_File("processes.txt", Processes);
+  counter_of_process = Read_File("process.txt", Processes);
   // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
   chosen = Chosen_Algorithm(&quantum);
   // 3. Initiate and create the scheduler and clock processes.

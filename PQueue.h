@@ -1,7 +1,9 @@
 #define Process struct Process 
 Process
 {
-    int Id, Arrive_Time, Run_Time, Priority,Remaining_Time;
+    int Id, Arrive_Time,
+     Run_Time, Priority,Remaining_Time,
+     Mem_Size;
 };
 typedef struct node {
     Process data;
