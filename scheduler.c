@@ -3,12 +3,14 @@
 #define memo_size 1024
 PCB *Process_control;
 int chosen, process_msgq_id = -1, msgq_id = -1;
-int clearResources_flag=0;
+int clearResources_flag = 0;
 int memory[memo_size];
-
+int mem_flag = 1;
+TreeNode *root = NULL;
 void clearResources()
 {
-    if(clearResources_flag)  exit(0);
+    if (clearResources_flag)
+        exit(0);
     free(Process_control);
     if (process_msgq_id != -1 && msgctl(process_msgq_id, IPC_RMID, NULL) == -1)
     {
@@ -16,13 +18,29 @@ void clearResources()
     }
     if (msgq_id != -1 && msgctl(msgq_id, IPC_RMID, NULL) == -1)
     {
-         perror("Error: failed to remove message queue process in shcadual");
+        perror("Error: failed to remove message queue process in shcadual");
     }
     printf("Scheduler Terminating!\n");
-    clearResources_flag=1;
+    clearResources_flag = 1;
     destroyClk(true);
-   exit(0);
-
+    exit(0);
+}
+void initialize_memory()
+{
+    if (mem_flag == 1)
+    {
+        for (int i = 0; i < memo_size; i++)
+            memory[i] = 0;
+    }
+    else
+    {
+        root = (TreeNode *)malloc(sizeof(TreeNode));
+        root->left = NULL;
+        root->right = NULL;
+        root->size = 1024;
+        root->start = 0;
+        root->takenId = -1;
+    }
 }
 int Recv_Signal()
 {
@@ -36,16 +54,19 @@ int Recv_Signal()
 }
 void New_File()
 {
-
     FILE *fp;
     char str[] = "#At time x process y state arr w total z remain y wait k\n";
+    char strm[] = "#At time x allocated y bytes for process z from I to j\n";
     fp = fopen("scheduler.log", "w");
-    if (fp == NULL)
+    FILE *fm = fopen("memory.log", "w");
+    if (fp == NULL || fm == NULL)
     {
         printf("Error opening file\n");
         return;
     }
     fputs(str, fp);
+    fputs(strm, fm);
+    fclose(fm);
     fclose(fp);
 }
 Process Recived_Process(int *priority)
@@ -94,10 +115,27 @@ void Write_to_schedulerLog(int id)
     else
     {
         int TA = Process_control[id - 1].Finish_Time - Process_control[id - 1].Arrival_Time;
-        float WTA =Process_control[id - 1].Execution_time>0? (float)TA / Process_control[id - 1].Execution_time + EPS:0;
+        float WTA = Process_control[id - 1].Execution_time > 0 ? (float)TA / Process_control[id - 1].Execution_time + EPS : 0;
         sprintf(line, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), id, state, Process_control[id - 1].Arrival_Time, Process_control[id - 1].Execution_time, remain, wait, TA, WTA);
     }
     fp = fopen("scheduler.log", "a");
+    if (fp == NULL)
+    {
+        printf("Error opening file\n");
+        return;
+    }
+
+    fprintf(fp, "%s", line);
+    fclose(fp);
+}
+void Write_to_MemoryLog(int id, int size, int start, char *state,int actualSize )
+{
+    FILE *fp;
+    char line[200];
+
+    sprintf(line, "At time %d %s %d bytes for process %d from %d to %d\n", getClk(), state, actualSize, id, start, start + size-1);
+
+    fp = fopen("memory.log", "a");
     if (fp == NULL)
     {
         printf("Error opening file\n");
@@ -114,39 +152,67 @@ void intToStrArray(int num1, int num2, int num3, int num4, char strArr[4][10])
     sprintf(strArr[2], "%d", num3);
     sprintf(strArr[3], "%d", num4);
 }
-int get_free_memory_FF(int size, int id){  // free memory for first fit
-    //printf("memory[0] = %d\n", memory[0]);
-    for(int i = 0;i < memo_size; i++){
-        if(memory[i] == 0){
-            int cnt = 0;
-            for(int j = i; cnt < size; j++) {
-                if(memory[j%memo_size] == 0) cnt++;
-                else break;
-            }
-            // memory[i] = id -> start of memory
-            // memory[i] = -1 -> you cannot take this location, it's reserved
-            if(cnt == size) {
-                memory[i] = id;
-                if(id == 1) printf("reserved memroy\n");
-                cnt = 1;
-                for(int j = i+1; cnt < size; j++, cnt++){
-                    memory[j%memo_size] = -1;  
+int Reserved_free_memory_FF(int size, int id)
+{ // free memory for first fit
+    // printf("memory[0] = %d\n", memory[0]);
+    if (mem_flag == 1)
+    {
+        for (int i = 0; i < memo_size; i++)
+        {
+            if (memory[i] == 0)
+            {
+                int cnt = 0;
+                for (int j = i; cnt < size; j++)
+                {
+                    if (memory[j % memo_size] == 0)
+                        cnt++;
+                    else
+                        break;
                 }
-                return i;
+                // memory[i] = id -> start of memory
+                // memory[i] = -1 -> you cannot take this location, it's reserved
+                if (cnt == size)
+                {
+                    memory[i] = id;
+                    if (id == 1)
+                        printf("reserved memroy\n");
+                    cnt = 1;
+                    for (int j = i + 1; cnt < size; j++, cnt++)
+                    {
+                        memory[j % memo_size] = -1;
+                    }
+                    return i;
+                }
             }
         }
+    }
+    else
+    {
+        insert(&root, size, id, 1024, 0);
+        return findNode(&root, id)->start;
     }
 
     return -1;
 }
-void free_memory(int size, int id){
+int free_memory(int size, int id)
+{
     int start = 0;
-    while (start < memo_size)
+    if (mem_flag == 1)
     {
-        if(memory[start] == id) break;
-        start++;
+        while (start < memo_size)
+        {
+            if (memory[start] == id)
+                break;
+            start++;
+        }
+        for (int i = 0, j = start; i < size; i++, j++)
+            memory[j % memo_size] = 0;
     }
-    for(int i = 0, j = start; i < size; i++, j++) memory[j%memo_size] = 0;
+    else
+    {
+        deleteNode(&root, id, &start);
+    }
+    return start;
 }
 
 void Non_preemptive_Highest_Priority_First(Node **Process_queue)
@@ -158,10 +224,13 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         Process running = dequeue(&(*Process_queue));
 
         // if process has no free memory continue
-        int memo_index = get_free_memory_FF(running.Mem_Size, running.Id); 
-        if(memo_index == -1) {
+        int memo_index = Reserved_free_memory_FF(running.Mem_Size, running.Id);
+        if (memo_index == -1)
+        {
             enqueue(&(*Process_queue), running, running.Priority);
         }
+        Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, memo_index, "allocated",running.Mem_Size);
+
         make_PCB(running);
 
         intToStrArray(running.Remaining_Time, running.Id, chosen, 10000, Args);
@@ -176,7 +245,8 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         if ((sid = wait(&status)) > 0)
             ;
         Process_control[running.Id - 1].Finish_Time = getClk();
-        free_memory(running.Mem_Size, running.Id);
+         int start=free_memory(running.Mem_Size, running.Id);
+            Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, start, "freed",running.Mem_Size);
         strcpy(Process_control[running.Id - 1].state, "finished");
         Write_to_schedulerLog(running.Id);
     }
@@ -198,16 +268,16 @@ void scheduler_pref(int size)
         Worktime += Process_control[i].Execution_time;
         WaitTime += Process_control[i].Finish_Time - Process_control[i].Arrival_Time - Process_control[i].Execution_time;
         TA = Process_control[i].Finish_Time - Process_control[i].Arrival_Time;
-        WTA +=  Process_control[i].Execution_time>0?(float)(TA) / Process_control[i].Execution_time:0;
+        WTA += Process_control[i].Execution_time > 0 ? (float)(TA) / Process_control[i].Execution_time : 0;
     }
 
     float ut = ((float)Worktime / getClk()) * 100 + EPS;
-   // printf("clk:%d worktime:%d ut=%f\n", getClk(), Worktime, ut);
+    // printf("clk:%d worktime:%d ut=%f\n", getClk(), Worktime, ut);
     float sum = 0, AvgWTA = (float)WTA / size + EPS;
     for (int i = 0; i < size; i++)
     {
         TA = Process_control[i].Finish_Time - Process_control[i].Arrival_Time;
-        sum += pow(AvgWTA - (Process_control[i].Execution_time>0?(float)TA / Process_control[i].Execution_time:0), 2);
+        sum += pow(AvgWTA - (Process_control[i].Execution_time > 0 ? (float)TA / Process_control[i].Execution_time : 0), 2);
     }
     float std = sqrt(sum / size) + EPS;
 
@@ -222,16 +292,20 @@ Process Round_Robin(Node **Process_queue, int quantum)
     if (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
-        int memo_index = get_free_memory_FF(running.Mem_Size, running.Id); 
-        printf("memo_indx = -1, id = %d, memo_size = %d\n", running.Id, running.Mem_Size);
-        if(memo_index == -1){
-            return running;
-        }
 
         intToStrArray(running.Remaining_Time, running.Id, chosen, quantum, Args);
         if (running.Run_Time == running.Remaining_Time) // if first time to run add it to pcb and write it in schedulerLog
         {
+            int memo_index = Reserved_free_memory_FF(running.Mem_Size, running.Id);
+
+            if (memo_index == -1)
+            {
+                return running;
+            }
+            printf("memo_indx = %d, id = %d, memo_size = %d\n", memo_index, running.Id, running.Mem_Size);
+            Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, memo_index, "allocated",running.Mem_Size);
             make_PCB(running);
+
             Write_to_schedulerLog(running.Id);
         }
         else
@@ -267,7 +341,9 @@ Process Round_Robin(Node **Process_queue, int quantum)
         {
             Process_control[running.Id - 1].Finish_Time = getClk();
             Process_control[running.Id - 1].Waiting_Time = Process_control[running.Id - 1].Finish_Time - Process_control[running.Id - 1].Arrival_Time - Process_control[running.Id - 1].Execution_time;
-            free_memory(running.Mem_Size, running.Id);
+            int start=free_memory(running.Mem_Size, running.Id);
+            Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, start, "freed",running.Mem_Size);
+            printf("memeory is freed \n");
             strcpy(Process_control[running.Id - 1].state, "finished");
             Write_to_schedulerLog(running.Id);
         }
@@ -288,14 +364,15 @@ int main(int argc, char *argv[])
     chosen = atoi(argv[1]);      // chosen algo
     int quantum = atoi(argv[2]); // q of Round Robin
     int numOfProcess = atoi(argv[3]);
+    mem_flag = atoi(argv[4]);
     int priority = 0;
     Process_control = malloc(numOfProcess * sizeof(PCB)); // PCB
     int FixedSize = numOfProcess;
     Node *Process_queue = NULL; // process priority queue
     Process non_finished_process, Currunt_process;
     non_finished_process.Id = -1;
-    New_File(); // init the Schaduluer.log file
-    for(int i = 0; i < memo_size; i++) memory[i] = 0;
+    New_File();          // init the Schaduluer.log file
+    initialize_memory(); // init the memorey
     while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1)
     {
         Currunt_process = Recived_Process(&priority);

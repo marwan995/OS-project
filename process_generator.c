@@ -4,11 +4,12 @@
 
 void clearResources(int);
 int msgq_id;
-void intToStrArray(int num1, int num2, int num3, char strArr[3][10])
+void intToStrArray(int num1, int num2, int num3,int num4, char strArr[4][10])
 {
   sprintf(strArr[0], "%d", num1);
   sprintf(strArr[1], "%d", num2);
   sprintf(strArr[2], "%d", num3);
+  sprintf(strArr[3], "%d", num4);
 }
 Process Process_handler(char line[])
 {
@@ -40,7 +41,7 @@ int Read_File(char File_Path[], Process Processes[])
   fclose(File);
   return counter_of_process;
 }
-int Chosen_Algorithm(int *quantum)
+int Chosen_Algorithm(int *quantum,int *Chosen_memory)
 {
   // quantum passed by pointer as it holds the additional parameter
   int Chosen = 1;
@@ -53,6 +54,13 @@ int Chosen_Algorithm(int *quantum)
     *quantum = (*quantum) < 1 ? 1 : (*quantum);
   }
   if (Chosen < 1 || Chosen > 3)
+  {
+    printf("WRONG INPUT EXIT\n");
+    exit(-1);
+  }
+  printf("Enter the number of algorthim for Memory \n1-First Fit\n2-Buddy System\n");
+  scanf("%d", Chosen_memory);
+  if (*Chosen_memory < 1 || *Chosen_memory > 2)
   {
     printf("WRONG INPUT EXIT\n");
     exit(-1);
@@ -77,7 +85,7 @@ void Create_Scheduler_and_Clock(char Scheduler_Args[3][10])
       }
       else
       {
-        execl("./scheduler.out", "./scheduler.out", Scheduler_Args[0], Scheduler_Args[1], Scheduler_Args[2], NULL);
+        execl("./scheduler.out", "./scheduler.out", Scheduler_Args[0], Scheduler_Args[1], Scheduler_Args[2],Scheduler_Args[3], NULL);
       }
     }
   }
@@ -106,21 +114,19 @@ int main(int argc, char *argv[])
 {
   signal(SIGINT, clearResources);
   Process Processes[100];
-  char Scheduler_Args[3][10];
-  int counter_of_process, chosen, quantum, Currunt_proccess_index = 0;
+  char Scheduler_Args[4][10];
+  int counter_of_process, chosen, quantum,Chosen_memory, Currunt_proccess_index = 0;
   // 1. Read the input files.
-  counter_of_process = Read_File("process.txt", Processes);
+  counter_of_process = Read_File("processes.txt", Processes);
   // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
-  chosen = Chosen_Algorithm(&quantum);
+  chosen = Chosen_Algorithm(&quantum,&Chosen_memory);
   // 3. Initiate and create the scheduler and clock processes.
-
   // convert the integer paramters to string to be passed for the execl sys call 
   // as arguments 
-  intToStrArray(chosen, quantum, counter_of_process, Scheduler_Args);
+  intToStrArray(chosen, quantum, counter_of_process,Chosen_memory,Scheduler_Args);
   Create_Scheduler_and_Clock(Scheduler_Args);
   // 4. Use this function after creating the clock process to initialize clock
   initClk();
-
   // 5. Create a data structure for processes and provide it with its parameters.
   // 6. Send the information to the scheduler at the appropriate time.
   // 7. Clear clock resources

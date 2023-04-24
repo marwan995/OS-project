@@ -5,6 +5,7 @@ TreeNode
      TreeNode *left;
      TreeNode *right;
 };
+
 void CreateNode(TreeNode **root, int lastSize, int start)
 {
      if (*root == NULL)
@@ -52,15 +53,16 @@ int insert(TreeNode **root, int value, int PId, int lastSize, int start)
      }
 }
 
-int deleteNode(TreeNode **root,int PId){
+int deleteNode(TreeNode **root,int PId,int*start){
      if((*root) == NULL) return 0;
      if((*root)->takenId == PId){
           (*root)->takenId = -1;
           (*root)->cursize = (*root)->size;
+          (*start)=(*root)->start;
           return (*root)->size;
      }
      int ret = 0;
-     ret = deleteNode(&((*root)->left), PId);
+     ret = deleteNode(&((*root)->left), PId,start);
      if(ret != 0){
           // check that the right are empty or not to delete them both
           if((*root)->right->cursize == (*root)->right->size){
@@ -71,7 +73,7 @@ int deleteNode(TreeNode **root,int PId){
           (*root)->cursize += ret;
           return ret;
      }
-     ret = deleteNode(&((*root)->right), PId);
+     ret = deleteNode(&((*root)->right), PId,start);
      if(ret != 0){
           // check that the left are empty or not
           if((*root)->left->cursize == (*root)->left->size){
