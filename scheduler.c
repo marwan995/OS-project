@@ -186,6 +186,10 @@ int main(int argc, char *argv[])
     mem_flag = atoi(argv[4]);
     int priority = 0;
     Process_control = malloc(numOfProcess * sizeof(PCB)); // PCB
+    for (int i = 0; i < numOfProcess; i++)
+    {
+        Process_control[i].PID=-1;
+    }
     int FixedSize = numOfProcess;
     Node *Process_queue = NULL; // process priority queue
     Node *has_No_Memory_queue = NULL;

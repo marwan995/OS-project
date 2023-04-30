@@ -41,30 +41,41 @@ int Read_File(char File_Path[], Process Processes[])
   fclose(File);
   return counter_of_process;
 }
-int Chosen_Algorithm(int *quantum,int *Chosen_memory)
+int Chosen_Algorithm(int argc, char *argv[],int *quantum,int *Chosen_memory)
 {
   // quantum passed by pointer as it holds the additional parameter
-  int Chosen = 1;
-  printf("Enter the number of algorthim for scheduling \n1-Non-preemptive Highest Priority First\n2-Shortest Remaining time Next\n3-Round Robin\n");
-  scanf("%d", &Chosen);
-  if (Chosen == 3)
-  {
-    printf("Enter the quantum size: ");
-    scanf("%d", quantum);
-    *quantum = (*quantum) < 1 ? 1 : (*quantum);
-  }
-  if (Chosen < 1 || Chosen > 3)
-  {
-    printf("WRONG INPUT EXIT\n");
-    exit(-1);
-  }
-  printf("Enter the number of algorthim for Memory \n1-First Fit\n2-Buddy System\n");
-  scanf("%d", Chosen_memory);
-  if (*Chosen_memory < 1 || *Chosen_memory > 2)
-  {
-    printf("WRONG INPUT EXIT\n");
-    exit(-1);
-  }
+    int Chosen = 1;
+   for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-sch") == 0) {
+            if (i + 1 < argc) {
+                Chosen = atoi(argv[i + 1]);
+            }
+            else {
+                printf("Error: Missing value for -sch parameter.\n");
+                exit(1);
+            }
+        }
+        if (strcmp(argv[i], "-mem") == 0) {
+            if (i + 1 < argc) {
+                *Chosen_memory = atoi(argv[i + 1]);
+            }
+            else {
+                printf("Error: Missing value for -mem parameter.\n");
+                exit(1);
+            }
+        }
+        if (strcmp(argv[i], "-q") == 0) {
+            if (i + 1 < argc) {
+                *quantum = atoi(argv[i + 1]);
+            }
+            else {
+                printf("Error: Missing value for -q parameter.\n");
+                exit(1);
+            }
+        }
+  
+    }
+
   return Chosen;
 }
 void Create_Scheduler_and_Clock(char Scheduler_Args[3][10])
@@ -116,10 +127,11 @@ int main(int argc, char *argv[])
   Process Processes[100];
   char Scheduler_Args[4][10];
   int counter_of_process, chosen, quantum,Chosen_memory, Currunt_proccess_index = 0;
-  // 1. Read the input files.
-  counter_of_process = Read_File("process.txt", Processes);
+
   // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
-  chosen = Chosen_Algorithm(&quantum,&Chosen_memory);
+  chosen = Chosen_Algorithm(argc,*&argv,&quantum,&Chosen_memory);
+   // 1. Read the input files.
+  counter_of_process = Read_File(argv[1], Processes);
   // 3. Initiate and create the scheduler and clock processes.
   // convert the integer paramters to string to be passed for the execl sys call 
   // as arguments 

@@ -1,4 +1,4 @@
 #id arrival runtime priority memsize
-1	8	15	0	78
-2	17	29	2	70
-3	22	12	6	5
+1	10	27	10	81
+2	11	15	9	168
+3	18	10	0	127
