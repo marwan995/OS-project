@@ -5,12 +5,12 @@ Process
      Run_Time, Priority,Remaining_Time,
      Mem_Size;
 };
-typedef struct node {
+typedef struct node {   
     Process data;
     int priority;
     struct node* next;
 } Node;
-int size=0;
+int queue_size=0;
 Node* createNode(Process data, int priority) {
     Node* newNode = (Node*) malloc(sizeof(Node));
     newNode->data = data;
@@ -21,7 +21,7 @@ Node* createNode(Process data, int priority) {
 
 void enqueue(Node** head, Process data, int priority) {
     Node* newNode = createNode(data, priority);
-    size++;
+    queue_size++;
     if (*head == NULL) {
         *head = newNode;
         return;
@@ -49,7 +49,7 @@ Process dequeue(Node** head) {
     Process data = temp->data;
     *head = (*head)->next;
     free(temp);
-    size--;
+    queue_size--;
     return data;
 }
 void printQueue(Node** head) {

@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
   char Scheduler_Args[4][10];
   int counter_of_process, chosen, quantum,Chosen_memory, Currunt_proccess_index = 0;
   // 1. Read the input files.
-  counter_of_process = Read_File("processes.txt", Processes);
+  counter_of_process = Read_File("process.txt", Processes);
   // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
   chosen = Chosen_Algorithm(&quantum,&Chosen_memory);
   // 3. Initiate and create the scheduler and clock processes.
