@@ -52,6 +52,11 @@ Process dequeue(Node** head) {
     queue_size--;
     return data;
 }
+Process Peek(Node**head){
+    Node* temp = *head;
+    Process data = temp->data;
+    return data;
+}
 void printQueue(Node** head) {
     Node* temp = *head;
     while (temp != NULL) {

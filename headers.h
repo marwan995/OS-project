@@ -51,7 +51,10 @@ int getClk()
     return *shmaddr;
 }
 
-
+int next_power_of_two(int n) {
+    int p = ceil(log2(n));
+    return pow(2, p);
+}
 /*
  * All process call this function at the beginning to establish communication between them and the clock module.
  * Again, remember that the clock is only emulation!

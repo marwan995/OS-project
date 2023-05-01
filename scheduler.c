@@ -15,12 +15,11 @@ void New_File();
 Process Recived_Process(int *priority);
 void make_PCB(Process p);
 void Write_to_schedulerLog(int id);
-void Write_to_MemoryLog(int id, int size, int start, char *state,int actualSize );
+void Write_to_MemoryLog(int id, int size, int start, char *state, int actualSize);
 void intToStrArray(int num1, int num2, int num3, int num4, char strArr[4][10]);
 int Reserved_free_memory_FF(int size, int id);
 int free_memory(int size, int id);
-void Move_between_queues(Node **Process_queue, Node** has_no_mem_queue);
-
+void Move_between_queues(Node **Process_queue, Node **has_no_mem_queue);
 
 void Non_preemptive_Highest_Priority_First(Node **Process_queue)
 {
@@ -36,7 +35,7 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         {
             enqueue(&(*Process_queue), running, running.Priority);
         }
-        Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, memo_index, "allocated",running.Mem_Size);
+        Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, memo_index, "allocated", running.Mem_Size);
 
         make_PCB(running);
 
@@ -52,8 +51,8 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
         if ((sid = wait(&status)) > 0)
             ;
         Process_control[running.Id - 1].Finish_Time = getClk();
-         int start=free_memory(running.Mem_Size, running.Id);
-            Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, start, "freed",running.Mem_Size);
+        int start = free_memory(running.Mem_Size, running.Id);
+        Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, start, "freed", running.Mem_Size);
         strcpy(Process_control[running.Id - 1].state, "finished");
         Write_to_schedulerLog(running.Id);
     }
@@ -107,14 +106,15 @@ Process Round_Robin(Node **Process_queue, int quantum)
         {
 
             int memo_index = Reserved_free_memory_FF(running.Mem_Size, running.Id);
-            
 
             if (memo_index == -1)
-            {
+            {   
+                
                 return running;
+
             }
-            printf("procees found memory:: id = %d, memo_indx = %d, memo_size = %d\n",  running.Id, memo_index, running.Mem_Size);
-            Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, memo_index, "allocated",running.Mem_Size);
+            printf("procees found memory:: id = %d, memo_indx = %d, memo_size = %d\n", running.Id, memo_index, running.Mem_Size);
+            Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, memo_index, "allocated", running.Mem_Size);
             make_PCB(running);
 
             Write_to_schedulerLog(running.Id);
@@ -122,14 +122,14 @@ Process Round_Robin(Node **Process_queue, int quantum)
         else
         {
             // update just the wait time
-            if(prev_id != running.Id){
+            if (chosen == 3)
+            {
                 int arr_time = Process_control[running.Id - 1].Arrival_Time;
                 int exec_time = Process_control[running.Id - 1].Execution_time;
                 int rem_time = Process_control[running.Id - 1].Remaining_time;
                 Process_control[running.Id - 1].Waiting_Time = getClk() - arr_time - (exec_time - rem_time);
                 strcpy(Process_control[running.Id - 1].state, "resumed");
                 Write_to_schedulerLog(running.Id);
-                prev_id = running.Id;
             }
         }
 
@@ -142,30 +142,30 @@ Process Round_Robin(Node **Process_queue, int quantum)
         }
         running.Remaining_Time = Recv_Signal();
         Process_control[running.Id - 1].Remaining_time = running.Remaining_Time;
-        
+
         // after the process finishes its quantum free its memory space
 
         if (running.Remaining_Time > 0)
         {
-            if(prev_id != running.Id){
-                strcpy(Process_control[running.Id - 1].state, "stopped");
-                Write_to_schedulerLog(running.Id);
-                prev_id = running.Id;
-            }
+            if (chosen == 2)
+                return running;
+            strcpy(Process_control[running.Id - 1].state, "stopped");
+            Write_to_schedulerLog(running.Id);
             return running;
         }
         else if (running.Remaining_Time == 0)
         {
             Process_control[running.Id - 1].Finish_Time = getClk();
             Process_control[running.Id - 1].Waiting_Time = Process_control[running.Id - 1].Finish_Time - Process_control[running.Id - 1].Arrival_Time - Process_control[running.Id - 1].Execution_time;
-            int start=free_memory(running.Mem_Size, running.Id);
-            Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, start, "freed",running.Mem_Size);
+            int start = free_memory(running.Mem_Size, running.Id);
+            Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, start, "freed", running.Mem_Size);
             printf("memeory is freed \n");
             strcpy(Process_control[running.Id - 1].state, "finished");
             Write_to_schedulerLog(running.Id);
         }
     }
-    else{
+    else
+    {
         dummy.Remaining_Time = -1;
     }
     dummy.Id = -1; // To know if the process is finished or not, -1 means it has finished
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
     Process_control = malloc(numOfProcess * sizeof(PCB)); // PCB
     for (int i = 0; i < numOfProcess; i++)
     {
-        Process_control[i].PID=-1;
+        Process_control[i].PID = -1;
     }
     int FixedSize = numOfProcess;
     Node *Process_queue = NULL; // process priority queue
@@ -198,16 +198,15 @@ int main(int argc, char *argv[])
     non_finished_process.Remaining_Time = -1;
     New_File();          // init the Schaduluer.log file
     initialize_memory(); // init the memorey
-    while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1 || !isEmpty(&has_No_Memory_queue) )
+    while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1 || !isEmpty(&has_No_Memory_queue))
     {
         Currunt_process = Recived_Process(&priority);
         while (Currunt_process.Arrive_Time != -1) // while there is a process recive it
         {
-            if (chosen == 2)
-                // SRTN priority
+            if (chosen == 2)// SRTN priority
                 priority = Currunt_process.Remaining_Time;
-
             enqueue(&Process_queue, Currunt_process, priority);
+
             numOfProcess--;
             Currunt_process = Recived_Process(&priority);
         }
@@ -218,14 +217,36 @@ int main(int argc, char *argv[])
                 priority = non_finished_process.Remaining_Time;
             else
                 priority = 0;
-            if(non_finished_process.Remaining_Time == non_finished_process.Run_Time){ // this means that the process didn't find memory
+
+            if (non_finished_process.Remaining_Time == non_finished_process.Run_Time)
+            { // this means that the process didn't find memory
                 printf("procees : %d goes to memo_queue\n", non_finished_process.Id);
                 enqueue(&has_No_Memory_queue, non_finished_process, priority);
-            }else{
+            }
+            else
+            {
                 enqueue(&Process_queue, non_finished_process, priority);
             }
+            Process headProcess = Peek(&Process_queue);
+            if (headProcess.Id != non_finished_process.Id && chosen == 2)
+            {
+                strcpy(Process_control[non_finished_process.Id - 1].state, "stopped");
+                Write_to_schedulerLog(non_finished_process.Id);              
+            }
             non_finished_process.Id = -1;
-        }else if(non_finished_process.Remaining_Time == -2){
+        }
+        else if (non_finished_process.Remaining_Time == -2)
+        {           
+             Process headProcess = Peek(&Process_queue);
+              if (headProcess.Remaining_Time != headProcess.Run_Time)
+                {
+                    int arr_time = Process_control[headProcess.Id - 1].Arrival_Time;
+                    int exec_time = Process_control[headProcess.Id - 1].Execution_time;
+                    int rem_time = Process_control[headProcess.Id - 1].Remaining_time;
+                    Process_control[headProcess.Id - 1].Waiting_Time = getClk() - arr_time - (exec_time - rem_time);
+                    strcpy(Process_control[headProcess.Id - 1].state, "resumed");
+                    Write_to_schedulerLog(headProcess.Id);
+                }
             printf("move between funtion size of has_no_mem_queue = %d\n", queue_size);
             Move_between_queues(&Process_queue, &has_No_Memory_queue);
         }
@@ -235,13 +256,14 @@ int main(int argc, char *argv[])
             non_finished_process = Shortest_Remaining_time_Next(&Process_queue);
         else if (chosen == 3)
             non_finished_process = Round_Robin(&Process_queue, quantum);
-        
-        if(non_finished_process.Remaining_Time == 0){
+
+        if (non_finished_process.Remaining_Time == 0)
+        {
             printf("rem time for non_finished=0\n");
             non_finished_process.Remaining_Time = -2;
         }
-        else if(non_finished_process.Remaining_Time == -2)
-             non_finished_process.Remaining_Time = -1;
+        else if (non_finished_process.Remaining_Time == -2)
+            non_finished_process.Remaining_Time = -1;
     }
     while (wait(&quantum) > 0) // wait all process to finish
         ;
@@ -250,8 +272,10 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void Move_between_queues(Node **Process_queue, Node** has_no_mem_queue){
-    while(!isEmpty(&(*has_no_mem_queue))){
+void Move_between_queues(Node **Process_queue, Node **has_no_mem_queue)
+{
+    while (!isEmpty(&(*has_no_mem_queue)))
+    {
         Process cur_process = dequeue(&(*has_no_mem_queue));
         enqueue(&(*Process_queue), cur_process, cur_process.Remaining_Time);
     }
@@ -291,6 +315,7 @@ void initialize_memory()
         root->size = 1024;
         root->start = 0;
         root->takenId = -1;
+        root->cursize = 1024;
     }
 }
 
@@ -351,8 +376,9 @@ int Reserved_free_memory_FF(int size, int id)
     }
     else
     {
-        int sz = insert(&root, size, id, 1024, 0);
-        if(sz == 0) return -1;
+        int sz = insert(&root, next_power_of_two(size), id, 1024, 0);
+        if (sz == 0)
+            return -1;
         int ret = findNode(&root, id)->start;
         return ret;
     }
@@ -368,12 +394,12 @@ void intToStrArray(int num1, int num2, int num3, int num4, char strArr[4][10])
     sprintf(strArr[3], "%d", num4);
 }
 
-void Write_to_MemoryLog(int id, int size, int start, char *state,int actualSize )
+void Write_to_MemoryLog(int id, int size, int start, char *state, int actualSize)
 {
     FILE *fp;
     char line[200];
 
-    sprintf(line, "At time %d %s %d bytes for process %d from %d to %d\n", getClk(), state, actualSize, id, start, start + size-1);
+    sprintf(line, "At time %d %s %d bytes for process %d from %d to %d\n", getClk(), state, actualSize, id, start, start + size - 1);
 
     fp = fopen("memory.log", "a");
     if (fp == NULL)
@@ -476,4 +502,3 @@ int Recv_Signal()
         perror("reciving");
     return to_recv.Remaining_Time;
 }
-

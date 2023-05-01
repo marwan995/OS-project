@@ -25,6 +25,7 @@ int insert(TreeNode **root, int value, int PId, int lastSize, int start)
           return 0;                                                 // can't insert under this node
      if (value > (*root)->size / 2 && value <= (*root)->cursize && (*root)->takenId == -1) // check the place and check that it can be taken
      {
+          printf("id: %d  start: %d\n",PId,start);
           (*root)->takenId = PId;
           (*root)->cursize = 0;
           return (*root)->size;
@@ -52,39 +53,45 @@ int insert(TreeNode **root, int value, int PId, int lastSize, int start)
           return ret;
      }
 }
-
-int deleteNode(TreeNode **root,int PId,int*start){
-     if((*root) == NULL) return 0;
-     if((*root)->takenId == PId){
-          (*root)->takenId = -1;
-          (*root)->cursize = (*root)->size;
-          (*start)=(*root)->start;
-          return (*root)->size;
-     }
-     int ret = 0;
-     ret = deleteNode(&((*root)->left), PId,start);
-     if(ret != 0){
-          // check that the right are empty or not to delete them both
-          if((*root)->right->cursize == (*root)->right->size){
-               free((*root)->left);
-               free((*root)->right);
-               (*root)->left = (*root)->right = NULL;
-          }
-          (*root)->cursize += ret;
-          return ret;
-     }
-     ret = deleteNode(&((*root)->right), PId,start);
-     if(ret != 0){
-          // check that the left are empty or not
-          if((*root)->left->cursize == (*root)->left->size){
-               free((*root)->left);
-               free((*root)->right);
-               (*root)->left = (*root)->right = NULL;
-          }
-          (*root)->cursize += ret;
-          return ret;
-     }
-     return ret;
+int deleteNode(TreeNode **root, int PId, int *start)
+{
+    if ((*root) == NULL)
+        return 0;
+    if ((*root)->takenId == PId)
+    {
+        (*root)->takenId = -1;
+        (*root)->cursize = (*root)->size;
+        (*start) = (*root)->start;
+        return (*root)->size;
+    }
+    int ret = 0;
+    ret = deleteNode(&((*root)->left), PId, start);
+    if (ret != 0)
+    {
+        // check that the right are empty or not to delete them both
+        if ((*root)->right->cursize == (*root)->right->size&&(*root)->left->cursize == (*root)->left->size)
+        {
+            free((*root)->left);
+            free((*root)->right);
+            (*root)->left = (*root)->right = NULL;
+        }
+        (*root)->cursize += ret;
+        return ret;
+    }
+    ret = deleteNode(&((*root)->right), PId, start);
+    if (ret != 0)
+    {
+        // check that the left are empty or not
+        if ((*root)->right->cursize == (*root)->right->size&&(*root)->left->cursize == (*root)->left->size)
+        {
+            free((*root)->left);
+            free((*root)->right);
+            (*root)->left = (*root)->right = NULL;
+        }
+        (*root)->cursize += ret;
+        return ret;
+    }
+    return ret;
 }
 
 TreeNode* findNode(TreeNode **root, int PId){

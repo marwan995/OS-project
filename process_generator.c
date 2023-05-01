@@ -116,7 +116,7 @@ void Insert_process_and_Send(Process p)
   m.mtype = 4;
   m.p = p;
   int send_val = msgsnd(msgq_id, &m, sizeof(m.p), IPC_NOWAIT);
-  printf("Send a process from process generator\n");
+  printf("Send a process from process generator %d\n",getClk());
   if(send_val == -1){
     perror("error itn Insert_process_and_Send");
   }
