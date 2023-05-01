@@ -20,6 +20,7 @@ void intToStrArray(int num1, int num2, int num3, int num4, char strArr[4][10]);
 int Reserved_free_memory_FF(int size, int id);
 int free_memory(int size, int id);
 void Move_between_queues(Node **Process_queue, Node **has_no_mem_queue);
+int checkMemo(int size);
 
 void Non_preemptive_Highest_Priority_First(Node **Process_queue)
 {
@@ -206,7 +207,10 @@ int main(int argc, char *argv[])
             if (chosen == 2)// SRTN priority
                 priority = Currunt_process.Remaining_Time;
             enqueue(&Process_queue, Currunt_process, priority);
-
+           if( chosen==2&&checkMemo(Currunt_process.Mem_Size)==0){
+                dequeue(&Process_queue);
+                enqueue(&has_No_Memory_queue, Currunt_process, priority);
+           }
             numOfProcess--;
             Currunt_process = Recived_Process(&priority);
         }
@@ -238,7 +242,7 @@ int main(int argc, char *argv[])
         else if (non_finished_process.Remaining_Time == -2)
         {           
              Process headProcess = Peek(&Process_queue);
-              if (headProcess.Remaining_Time != headProcess.Run_Time)
+              if (headProcess.Id!=-5&&headProcess.Remaining_Time != headProcess.Run_Time&&chosen==2)
                 {
                     int arr_time = Process_control[headProcess.Id - 1].Arrival_Time;
                     int exec_time = Process_control[headProcess.Id - 1].Execution_time;
@@ -277,7 +281,10 @@ void Move_between_queues(Node **Process_queue, Node **has_no_mem_queue)
     while (!isEmpty(&(*has_no_mem_queue)))
     {
         Process cur_process = dequeue(&(*has_no_mem_queue));
+        if(chosen==2)
         enqueue(&(*Process_queue), cur_process, cur_process.Remaining_Time);
+        else
+         enqueue(&(*Process_queue), cur_process, 0);
     }
 }
 
@@ -339,7 +346,35 @@ int free_memory(int size, int id)
     }
     return start;
 }
-
+int checkMemo(int size){
+      if (mem_flag == 1)
+    {
+        for (int i = 0; i < memo_size; i++)
+        {
+            if (memory[i] == 0)
+            {
+                int cnt = 0;
+                for (int j = i; cnt < size; j++)
+                {
+                    if (memory[j % memo_size] == 0)
+                        cnt++;
+                    else
+                        break;
+                }
+                // memory[i] = id -> start of memory
+                // memory[i] = -1 -> you cannot take this location, it's reserved
+                if (cnt == size)
+                {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+    else {
+            return Check(&root, next_power_of_two(size), 1024, 0);
+    }
+}
 int Reserved_free_memory_FF(int size, int id)
 { // free memory for first fit
     // printf("memory[0] = %d\n", memory[0]);

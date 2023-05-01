@@ -53,6 +53,11 @@ Process dequeue(Node** head) {
     return data;
 }
 Process Peek(Node**head){
+      if (*head == NULL) {
+        Process x;
+       x.Id=-5;
+        return x;
+    }
     Node* temp = *head;
     Process data = temp->data;
     return data;

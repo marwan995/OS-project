@@ -53,6 +53,34 @@ int insert(TreeNode **root, int value, int PId, int lastSize, int start)
           return ret;
      }
 }
+int Check(TreeNode **root, int value, int lastSize, int start)
+{
+     // if the root is empty, create a new node to hold the value and make it the root
+     if (value > (*root)->cursize)
+          return 0;                                                 // can't insert under this node
+     if (value > (*root)->size / 2 && value <= (*root)->cursize && (*root)->takenId == -1) // check the place and check that it can be taken
+     {
+
+          return 1;
+     }
+     else
+     {
+          //(*root)->takenId = -2;
+          if ((*root)->left == NULL)
+          {
+               CreateNode(&((*root)->left), lastSize / 2, start);
+               CreateNode(&((*root)->right), lastSize / 2, start + lastSize / 2);
+          }
+          int ret;
+          ret = Check(&((*root)->left), value, lastSize / 2, start);
+          if (ret > 0)
+          {
+               return ret;
+          }
+          ret = Check(&((*root)->right), value, lastSize / 2, start + (lastSize / 2));
+          return ret;
+     }
+}
 int deleteNode(TreeNode **root, int PId, int *start)
 {
     if ((*root) == NULL)
