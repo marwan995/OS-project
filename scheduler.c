@@ -202,12 +202,18 @@ int main(int argc, char *argv[])
     while (numOfProcess > 0 || !isEmpty(&Process_queue) || non_finished_process.Id != -1 || !isEmpty(&has_No_Memory_queue))
     {
         Currunt_process = Recived_Process(&priority);
+        int first_enqueue = 1;
         while (Currunt_process.Arrive_Time != -1) // while there is a process recive it
         {
             if (chosen == 2)// SRTN priority
                 priority = Currunt_process.Remaining_Time;
+            if(first_enqueue == 1 && chosen == 3) {
+                printf("move between at the top (first enqueue)\n");
+                Move_between_queues(&Process_queue, &has_No_Memory_queue);
+            }
+            first_enqueue = 2;
             enqueue(&Process_queue, Currunt_process, priority);
-           if( chosen==2&&checkMemo(Currunt_process.Mem_Size)==0){
+           if(chosen==2 && checkMemo(Currunt_process.Mem_Size) == 0){
                 dequeue(&Process_queue);
                 enqueue(&has_No_Memory_queue, Currunt_process, priority);
            }
