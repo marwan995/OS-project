@@ -391,9 +391,9 @@ int Reserved_free_memory_FF(int size, int id)
             if (memory[i] == 0)
             {
                 int cnt = 0;
-                for (int j = i; cnt < size; j++)
+                for (int j = i; cnt < size && j < memo_size; j++)
                 {
-                    if (memory[j % memo_size] == 0)
+                    if (memory[j] == 0)
                         cnt++;
                     else
                         break;
@@ -406,9 +406,9 @@ int Reserved_free_memory_FF(int size, int id)
                     if (id == 1)
                         printf("reserved memroy\n");
                     cnt = 1;
-                    for (int j = i + 1; cnt < size; j++, cnt++)
+                    for (int j = i + 1; cnt < size && j < memo_size; j++, cnt++)
                     {
-                        memory[j % memo_size] = -1;
+                        memory[j] = -1;
                     }
                     return i;
                 }
