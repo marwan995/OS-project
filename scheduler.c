@@ -26,7 +26,7 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
 {
     int pid, status, sid;
     char Args[4][10];
-    while (!isEmpty(&(*Process_queue)))
+    if (!isEmpty(&(*Process_queue)))
     {
         Process running = dequeue(&(*Process_queue));
 
@@ -49,6 +49,8 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
             perror("erorr");
             return;
         }
+        running.Remaining_Time = Recv_Signal();
+        Process_control[running.Id - 1].Remaining_time = running.Remaining_Time;
         if ((sid = wait(&status)) > 0)
             ;
         Process_control[running.Id - 1].Finish_Time = getClk();
@@ -208,15 +210,15 @@ int main(int argc, char *argv[])
             if (chosen == 2)// SRTN priority
                 priority = Currunt_process.Remaining_Time;
             if(first_enqueue == 1 && chosen == 3) {
-                printf("move between at the top (first enqueue)\n");
                 Move_between_queues(&Process_queue, &has_No_Memory_queue);
             }
             first_enqueue = 2;
-            enqueue(&Process_queue, Currunt_process, priority);
            if(chosen==2 && checkMemo(Currunt_process.Mem_Size) == 0){
-                dequeue(&Process_queue);
                 enqueue(&has_No_Memory_queue, Currunt_process, priority);
            }
+           else        
+               enqueue(&Process_queue, Currunt_process, priority);
+
             numOfProcess--;
             Currunt_process = Recived_Process(&priority);
         }
@@ -230,7 +232,6 @@ int main(int argc, char *argv[])
 
             if (non_finished_process.Remaining_Time == non_finished_process.Run_Time)
             { // this means that the process didn't find memory
-                printf("procees : %d goes to memo_queue\n", non_finished_process.Id);
                 enqueue(&has_No_Memory_queue, non_finished_process, priority);
             }
             else
@@ -247,7 +248,9 @@ int main(int argc, char *argv[])
         }
         else if (non_finished_process.Remaining_Time == -2)
         {           
-             Process headProcess = Peek(&Process_queue);
+            Move_between_queues(&Process_queue, &has_No_Memory_queue);
+            Process headProcess = Peek(&Process_queue);//if null id=-5
+
               if (headProcess.Id!=-5&&headProcess.Remaining_Time != headProcess.Run_Time&&chosen==2)
                 {
                     int arr_time = Process_control[headProcess.Id - 1].Arrival_Time;
@@ -257,8 +260,6 @@ int main(int argc, char *argv[])
                     strcpy(Process_control[headProcess.Id - 1].state, "resumed");
                     Write_to_schedulerLog(headProcess.Id);
                 }
-            printf("move between funtion size of has_no_mem_queue = %d\n", queue_size);
-            Move_between_queues(&Process_queue, &has_No_Memory_queue);
         }
         if (chosen == 1)
             Non_preemptive_Highest_Priority_First(&Process_queue);
@@ -269,7 +270,6 @@ int main(int argc, char *argv[])
 
         if (non_finished_process.Remaining_Time == 0)
         {
-            printf("rem time for non_finished=0\n");
             non_finished_process.Remaining_Time = -2;
         }
         else if (non_finished_process.Remaining_Time == -2)
@@ -360,9 +360,9 @@ int checkMemo(int size){
             if (memory[i] == 0)
             {
                 int cnt = 0;
-                for (int j = i; cnt < size; j++)
+               for (int j = i; cnt < size && j < memo_size; j++)
                 {
-                    if (memory[j % memo_size] == 0)
+                    if (memory[j] == 0)
                         cnt++;
                     else
                         break;

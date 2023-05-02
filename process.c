@@ -45,7 +45,6 @@ int main(int agrc, char *argv[])
   if(remainingtime == 0){
     printf("process %d has done at %d\n", id, getClk());
   }
-  if(chosen == 3 || chosen == 2)
     Send_Signal(remainingtime);
   destroyClk(false);
   return 0;
