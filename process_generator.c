@@ -19,6 +19,7 @@ Process Process_handler(char line[])
   single.Run_Time = atoi(strtok(NULL, "\t"));
   single.Priority = atoi(strtok(NULL, "\t"));
   single.Mem_Size = atoi(strtok(NULL, "\t"));
+  if(single.Mem_Size==0)single.Mem_Size=1;
   single.Remaining_Time = single.Run_Time;
   return single;
 }
@@ -124,7 +125,7 @@ void Insert_process_and_Send(Process p)
 int main(int argc, char *argv[])
 {
   signal(SIGINT, clearResources);
-  Process Processes[100];
+  Process Processes[1000];
   char Scheduler_Args[4][10];
   int counter_of_process, chosen, quantum,Chosen_memory, Currunt_proccess_index = 0;
 
@@ -153,7 +154,10 @@ int main(int argc, char *argv[])
       Currunt_proccess_index++;
     }
   }
+  
+
   destroyClk(false);
+  while (wait(&chosen) > 0); //wait for clk and scheduler
   return 0;
 }
 

@@ -32,10 +32,7 @@ void Non_preemptive_Highest_Priority_First(Node **Process_queue)
 
         // if process has no free memory continue
         int memo_index = Reserved_free_memory_FF(running.Mem_Size, running.Id);
-        if (memo_index == -1)
-        {
-            enqueue(&(*Process_queue), running, running.Priority);
-        }
+
         Write_to_MemoryLog(running.Id, mem_flag == 2 ? pow(2, ceil(log2(running.Mem_Size))) : running.Mem_Size, memo_index, "allocated", running.Mem_Size);
 
         make_PCB(running);
